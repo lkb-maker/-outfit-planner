@@ -10,14 +10,17 @@ from dotenv import load_dotenv
 from flask import Flask, jsonify, request, send_from_directory
 
 ROOT_DIR = Path(__file__).resolve().parent
-PUBLIC_DIR = ROOT_DIR / "public"
+WEB_DIR = ROOT_DIR / "web"
 
 load_dotenv(ROOT_DIR / ".env")
 
 # Vercel's Python runtime looks for a top-level Flask instance named `app` in this
-# file. Static assets (public/index.html) are served directly by Vercel's CDN in
-# production — this app only ever needs to handle /api/* there. The "/" route below
-# exists for local development (`python3 server.py`), which has no CDN layer.
+# file, and bundles the whole project (except the CDN-only `public/` folder) into
+# a single serverless function. We serve index.html *through* Flask from web/ —
+# bundled with the function — rather than relying on Vercel's static CDN, because
+# a rewrite from "/" to a static file doesn't win against the Python catch-all.
+# This mirrors Vercel's own Flask example (Flask serves the page; the function
+# handles every route).
 app = Flask(__name__)
 client = Anthropic()  # reads ANTHROPIC_API_KEY from the environment
 
@@ -173,9 +176,7 @@ def disable_caching(response):
 
 @app.route("/")
 def index():
-    # Local-dev only — Vercel serves public/index.html directly via its CDN in
-    # production, without ever invoking this function.
-    return send_from_directory(PUBLIC_DIR, "index.html")
+    return send_from_directory(WEB_DIR, "index.html")
 
 
 @app.route("/api/state", methods=["GET"])
