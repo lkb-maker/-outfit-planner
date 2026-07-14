@@ -136,6 +136,8 @@
   .suggestion-text { flex: 1; font-size: 12.5px; line-height: 1.5; }
   .suggestion-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0 1px -1px;
     border: 1px solid rgba(42,36,31,.15); }
+  .suggestion-swatch-lg { width: 44px; height: 44px; border-radius: 8px; flex-shrink: 0;
+    border: 1px solid rgba(42,36,31,.15); }
   .suggestion-dismiss { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px;
     padding: 4px 8px; flex-shrink: 0; font-family: inherit; }
   .suggestion-dismiss:hover { color: var(--text); }
@@ -208,8 +210,8 @@
     </div>
 
     <div class="panel hide" id="suggestionsPanel">
-      <h2 style="margin:0;">Style suggestions</h2>
-      <div class="sub" style="margin-top: 4px;">Pieces that don't coordinate well with the rest of your closet &mdash; a different color might work harder for you.</div>
+      <h2 style="margin:0;">Shopping ideas</h2>
+      <div class="sub" style="margin-top: 4px;">Colors worth adding to get more outfits from what you already own.</div>
       <div class="suggestions-list" id="suggestionsList"></div>
     </div>
   </section>
@@ -825,47 +827,84 @@ function buildOutfit(grouped, target, usedCounts, iso) {
   return Object.fromEntries(Object.entries(outfit).filter(([, v]) => v).map(([k, v]) => [k, v.id]));
 }
 
-/* ---------- Style suggestions ----------
-   For each item, look at the categories it would actually get paired with (mirrors
-   buildOutfit's pairing: top<->bottom/layer, bottom<->top/layer, dress<->layer,
-   layer<->top/bottom/dress) and see how well its color coordinates with those
-   pieces on average. If another color family would coordinate meaningfully
-   better with the rest of the closet, suggest it — this is closet-versatility
-   advice, not a claim about what looks best in isolation. */
+/* ---------- Shopping ideas ----------
+   Buy-suggestions tuned for a neutral-leaning wardrobe, both free/offline:
+
+   1. Companion pieces — for each colored item you own, if one of its coordinating
+      categories has NO colorful piece that pairs with it, suggest adding one in a
+      complementary color. (e.g. you have colorful tops but every bottom is neutral
+      → a burgundy bottom would pair with your green blouse.)
+   2. Accent gaps — if your closet is heavily neutral, suggest a versatile accent
+      color you don't own yet that complements the colors you do own.
+
+   Both suggest ADDING pieces to build more outfits, never "recolor this to beige,"
+   which is the trap the earlier version fell into. */
 const PARTNER_CATEGORIES = { top: ["bottom", "layer"], bottom: ["top", "layer"], dress: ["layer"], layer: ["top", "bottom", "dress"] };
-const SUGGESTION_MIN_PARTNERS = 3;
-const SUGGESTION_MIN_IMPROVEMENT = 0.15;
+// Classic complementary pairing per chromatic family — a deliberate, wearable contrast.
+const COMPLEMENT_FAMILY = { red: "green", orange: "blue", yellow: "purple", green: "red", blue: "orange", purple: "yellow", pink: "green" };
+// Evocative, professional shade names for nicer copy than the bare family word.
+const SHADE_HINT = {
+  red: "burgundy or red", orange: "rust or terracotta", yellow: "mustard or gold",
+  green: "forest or olive green", blue: "cobalt blue", purple: "plum or aubergine", pink: "blush or rose",
+  beige: "camel", brown: "chocolate", navy: "navy", gray: "charcoal", black: "black", white: "cream",
+};
+const GOOD_PAIR = 0.85; // analogous or complementary — counts as "already have a colorful match"
 
-function averageCompatibility(colorFamily, partners) {
-  const scores = partners.map(p => colorCompatibility(colorFamily, p.colorFamily));
-  return scores.reduce((a, b) => a + b, 0) / scores.length;
-}
+function isChromatic(fam) { return fam && !NEUTRAL_COLORS.has(fam); }
+function pluralCat(cat) { return (CATEGORY_LABELS[cat] || cat).toLowerCase() + "s"; }
 
-function computeColorSuggestions(items) {
+// Feature 1: companion-piece suggestions, deduped by (target category + color).
+function companionSuggestions(items) {
   const grouped = byCategory(items);
-  const suggestions = [];
+  const seen = new Set();
+  const out = [];
 
   items.forEach(item => {
     const partnerCats = PARTNER_CATEGORIES[item.category];
-    if (!partnerCats || !item.colorFamily || NEUTRAL_COLORS.has(item.colorFamily)) return;
+    if (!partnerCats || !isChromatic(item.colorFamily)) return;
+    const comp = COMPLEMENT_FAMILY[item.colorFamily];
+    if (!comp) return;
 
-    const partners = partnerCats.flatMap(c => grouped[c] || []).filter(p => p.colorFamily);
-    if (partners.length < SUGGESTION_MIN_PARTNERS) return;
-
-    const currentAvg = averageCompatibility(item.colorFamily, partners);
-    let best = { family: null, avg: currentAvg };
-    COLOR_FAMILIES.forEach(family => {
-      if (family === item.colorFamily) return;
-      const avg = averageCompatibility(family, partners);
-      if (avg > best.avg) best = { family, avg };
+    partnerCats.forEach(cat => {
+      const pool = grouped[cat] || [];
+      if (pool.length < 2) return; // only an established category
+      const hasColorfulMatch = pool.some(p => isChromatic(p.colorFamily) && colorCompatibility(item.colorFamily, p.colorFamily) >= GOOD_PAIR);
+      if (hasColorfulMatch) return; // she can already make a colorful outfit here
+      const key = `companion:${cat}:${comp}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      out.push({ key, type: "companion", item, targetCat: cat, color: comp });
     });
+  });
+  return out;
+}
 
-    if (best.family && best.avg - currentAvg >= SUGGESTION_MIN_IMPROVEMENT) {
-      suggestions.push({ item, currentAvg, suggestedFamily: best.family, suggestedAvg: best.avg });
+// Feature 2: accent-gap suggestion (wardrobe-level), excluding colors already
+// covered by companion suggestions so we don't say "buy rust" twice.
+function accentGapSuggestions(items, excludeColors) {
+  const wearable = items.filter(i => PARTNER_CATEGORIES[i.category]);
+  if (wearable.length < 6) return [];
+  const chromatic = wearable.filter(i => isChromatic(i.colorFamily));
+  const neutralShare = 1 - chromatic.length / wearable.length;
+  if (neutralShare < 0.6) return []; // only nudge if clearly neutral-heavy
+
+  const owned = new Set(chromatic.map(i => i.colorFamily));
+  const out = [];
+  owned.forEach(fam => {
+    const comp = COMPLEMENT_FAMILY[fam];
+    if (comp && !owned.has(comp) && !excludeColors.has(comp) && !out.some(o => o.color === comp)) {
+      const example = chromatic.find(i => i.colorFamily === fam);
+      out.push({ key: `accent:${comp}`, type: "accent", color: comp, neutralShare, example });
     }
   });
+  return out.slice(0, 2);
+}
 
-  return suggestions.sort((a, b) => (b.suggestedAvg - b.currentAvg) - (a.suggestedAvg - a.currentAvg));
+function computeShoppingIdeas(items) {
+  const companions = companionSuggestions(items);
+  const usedColors = new Set(companions.map(c => c.color));
+  const accents = accentGapSuggestions(items, usedColors);
+  return [...companions, ...accents].slice(0, 5);
 }
 
 function renderSuggestions() {
@@ -873,25 +912,32 @@ function renderSuggestions() {
   const list = document.getElementById("suggestionsList");
   const dismissed = new Set(loadDismissedSuggestions());
 
-  const suggestions = computeColorSuggestions(loadItems()).filter(s => !dismissed.has(s.item.id));
-  panel.classList.toggle("hide", suggestions.length === 0);
-  if (!suggestions.length) return;
+  const ideas = computeShoppingIdeas(loadItems()).filter(s => !dismissed.has(s.key));
+  panel.classList.toggle("hide", ideas.length === 0);
+  if (!ideas.length) return;
 
-  list.innerHTML = suggestions.slice(0, 5).map(s => `
-    <div class="suggestion-card">
-      <img src="${s.item.thumb}" alt="${escapeHtml(s.item.name)}">
-      <div class="suggestion-text">
-        Your <b>${escapeHtml(s.item.name)}</b> pairs well with about ${Math.round(s.currentAvg * 100)}% of your closet.
-        A <span class="suggestion-swatch" style="background:${COLOR_FAMILY_SWATCH[s.suggestedFamily]}"></span><b>${COLOR_FAMILY_LABELS[s.suggestedFamily]}</b> version would pair with about ${Math.round(s.suggestedAvg * 100)}% instead.
-      </div>
-      <button class="suggestion-dismiss" data-id="${s.item.id}">Dismiss</button>
-    </div>
-  `).join("");
+  list.innerHTML = ideas.map(s => {
+    const swatch = `<span class="suggestion-swatch" style="background:${COLOR_FAMILY_SWATCH[s.color]}"></span>`;
+    let thumb, text;
+    if (s.type === "companion") {
+      thumb = `<img src="${s.item.thumb}" alt="${escapeHtml(s.item.name)}">`;
+      text = `A ${swatch}<b>${SHADE_HINT[s.color]}</b> ${escapeHtml(CATEGORY_LABELS[s.targetCat].toLowerCase())} would pair with your <b>${escapeHtml(s.item.name)}</b> — all your ${escapeHtml(pluralCat(s.targetCat))} are neutral right now, so a colorful one gives you a standout outfit.`;
+    } else {
+      thumb = `<div class="suggestion-swatch-lg" style="background:${COLOR_FAMILY_SWATCH[s.color]}"></div>`;
+      text = `Your closet is mostly neutral. A piece in ${swatch}<b>${SHADE_HINT[s.color]}</b> would be a versatile accent that complements your <b>${escapeHtml(s.example.name)}</b> and still works with all your neutrals.`;
+    }
+    return `
+      <div class="suggestion-card">
+        ${thumb}
+        <div class="suggestion-text">${text}</div>
+        <button class="suggestion-dismiss" data-key="${s.key}">Dismiss</button>
+      </div>`;
+  }).join("");
 
   list.querySelectorAll(".suggestion-dismiss").forEach(btn => {
     btn.addEventListener("click", () => {
-      const ids = loadDismissedSuggestions();
-      if (!ids.includes(btn.dataset.id)) saveDismissedSuggestions([...ids, btn.dataset.id]);
+      const keys = loadDismissedSuggestions();
+      if (!keys.includes(btn.dataset.key)) saveDismissedSuggestions([...keys, btn.dataset.key]);
       renderSuggestions();
     });
   });
