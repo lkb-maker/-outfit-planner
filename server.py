@@ -35,10 +35,15 @@ STATE_PATH = ROOT_DIR / "state.json"
 STATE_KEY = "outfit:state"
 _state_lock = threading.Lock()
 
-USE_REDIS = bool(os.environ.get("UPSTASH_REDIS_REST_URL"))
+# The Vercel/Upstash integration doesn't always name the REST credentials the same
+# way — depending on how it's connected they can arrive as UPSTASH_REDIS_REST_* or
+# KV_REST_API_*. Accept either so a working database is always picked up.
+REDIS_REST_URL = os.environ.get("UPSTASH_REDIS_REST_URL") or os.environ.get("KV_REST_API_URL")
+REDIS_REST_TOKEN = os.environ.get("UPSTASH_REDIS_REST_TOKEN") or os.environ.get("KV_REST_API_TOKEN")
+USE_REDIS = bool(REDIS_REST_URL and REDIS_REST_TOKEN)
 if USE_REDIS:
     from upstash_redis import Redis
-    redis = Redis.from_env()
+    redis = Redis(url=REDIS_REST_URL, token=REDIS_REST_TOKEN)
 
 DEFAULT_STATE = {
     "items": [],
@@ -85,17 +90,38 @@ def expected_token():
     return hashlib.sha256(APP_PASSWORD.encode()).hexdigest()
 
 
+PUBLIC_API_PATHS = {"/api/login", "/api/health"}
+
+
 @app.before_request
 def require_auth():
     if not APP_PASSWORD:
         return None
-    if request.path == "/api/login" or not request.path.startswith("/api/"):
+    if request.path in PUBLIC_API_PATHS or not request.path.startswith("/api/"):
         return None
     auth = request.headers.get("Authorization", "")
     token = auth[len("Bearer "):] if auth.startswith("Bearer ") else ""
     if not token or not hmac.compare_digest(token, expected_token()):
         return jsonify({"error": "unauthorized"}), 401
     return None
+
+
+@app.route("/api/health")
+def health():
+    # Unauthenticated, but leaks no secrets — only *which* storage-var NAMES are
+    # present (not their values) and whether Redis is active. Used to diagnose the
+    # storage wiring remotely.
+    candidate_names = [
+        "UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN",
+        "KV_REST_API_URL", "KV_REST_API_TOKEN",
+        "REDIS_URL", "KV_URL",
+    ]
+    present = [n for n in candidate_names if os.environ.get(n)]
+    return jsonify({
+        "storage": "redis" if USE_REDIS else "file",
+        "present_storage_var_names": present,
+        "password_configured": bool(APP_PASSWORD),
+    })
 
 
 @app.route("/api/login", methods=["POST"])
