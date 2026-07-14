@@ -1,0 +1,1102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Outfit Planner</title>
+<style>
+  :root {
+    --bg: #f7f3ec;
+    --panel: #ffffff;
+    --panel-2: #f1ebe0;
+    --border: #e3d9c9;
+    --text: #2a241f;
+    --muted: #7a7062;
+    --accent: #b1583d;
+    --accent-hover: #9a4a32;
+    --accent-tint: #f3dccf;
+    --accent-ink: #8a4326;
+    --on-accent: #fbf3ec;
+    --sage: #6e7f63;
+    --sage-tint: #e4eadf;
+    --sage-ink: #4f5c46;
+    --warn: #a8752e;
+    --bad: #a23b2e;
+    --font-serif: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, serif;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    --shadow-sm: 0 1px 2px rgba(42,36,31,.05);
+    --shadow: 0 8px 24px rgba(42,36,31,.09);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 14px; line-height: 1.5; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 32px 20px 80px; }
+  header { margin-bottom: 8px; }
+  .eyebrow { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent);
+    font-weight: 700; margin-bottom: 6px; }
+  h1 { font-family: var(--font-serif); font-size: 30px; margin: 0; font-weight: 500; letter-spacing: -0.01em; }
+  h2 { font-family: var(--font-serif); font-size: 19px; margin: 0 0 4px; font-weight: 500; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 6px; }
+  .tabs { display: inline-flex; gap: 2px; margin: 22px 0 22px; background: var(--panel-2);
+    padding: 4px; border-radius: 999px; }
+  .tab { background: none; border: none; color: var(--muted); padding: 9px 20px; cursor: pointer;
+    font-size: 13px; font-weight: 600; font-family: inherit; border-radius: 999px;
+    transition: background .15s ease, color .15s ease; }
+  .tab.active { color: var(--text); background: var(--panel); box-shadow: var(--shadow-sm); }
+  .tab:hover:not(.active) { color: var(--text); }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
+    padding: 22px 24px; margin-bottom: 18px; box-shadow: var(--shadow-sm); }
+  .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  button.btn { background: var(--accent); color: var(--on-accent); border: none; padding: 10px 20px;
+    border-radius: 999px; font-weight: 600; cursor: pointer; font-size: 13px; font-family: inherit;
+    letter-spacing: 0.01em; box-shadow: var(--shadow-sm); transition: filter .15s ease, transform .1s ease; }
+  button.btn:hover { filter: brightness(1.06); }
+  button.btn:active { transform: scale(0.98); }
+  button.btn:disabled { opacity: 0.4; cursor: default; filter: none; box-shadow: none; }
+  button.ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  button.icon-btn { background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+    padding: 6px 14px; border-radius: 999px; cursor: pointer; font-family: inherit; font-size: 12px;
+    font-weight: 600; transition: background .15s ease, border-color .15s ease, color .15s ease; }
+  button.icon-btn:hover { background: var(--accent-tint); border-color: var(--accent); color: var(--accent-ink); }
+  input[type=file] { display: none; }
+  label.file-btn { background: var(--accent); color: var(--on-accent); padding: 10px 20px; border-radius: 999px;
+    font-weight: 600; cursor: pointer; font-size: 13px; display: inline-block; box-shadow: var(--shadow-sm);
+    transition: filter .15s ease; }
+  label.file-btn:hover { filter: brightness(1.06); }
+  .muted { color: var(--muted); }
+  .hide { display: none !important; }
+  .empty { text-align: center; padding: 48px 16px; }
+  .empty-title { font-family: var(--font-serif); font-size: 17px; color: var(--text); margin-bottom: 4px; }
+  .empty-sub { font-size: 13px; color: var(--muted); }
+  .mini-field, .item-field { background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+    border-radius: 10px; padding: 7px 11px; font-size: 12.5px; font-family: inherit; }
+  .mini-field::placeholder, .item-field::placeholder { color: var(--muted); opacity: 1; }
+  .mini-field:focus, .item-field:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  select.mini-field, select.item-field, select.dress-code-field {
+    appearance: none; -webkit-appearance: none; cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%237a7062' stroke-width='1.6'%3E%3Cpath d='M5 7l5 5 5-5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 9px center; background-size: 13px;
+    padding-right: 28px;
+  }
+  .upload-queue { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .queue-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+  .status.err { color: var(--bad); }
+  .spinner { width: 12px; height: 12px; border: 2px solid var(--border); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin 0.7s linear infinite; flex-shrink: 0; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Week grid */
+  .week-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+  .day-card { background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
+    padding: 18px 20px; box-shadow: var(--shadow-sm); }
+  .day-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+  .day-name { font-family: var(--font-serif); font-size: 17px; font-weight: 500; }
+  .day-date { font-family: var(--font-sans); font-weight: 400; color: var(--muted); font-size: 12px; margin-left: 8px; }
+  .day-weather { display: inline-flex; align-items: center; font-size: 12px; font-weight: 600;
+    color: var(--sage-ink); background: var(--sage-tint); padding: 5px 12px; border-radius: 999px; margin-bottom: 12px; }
+  .day-extras { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .day-extras .event-field { flex: 1; min-width: 150px; }
+  .outfit-pieces { display: flex; flex-wrap: wrap; gap: 10px; }
+  .piece { display: flex; align-items: center; gap: 10px; background: var(--panel-2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 8px 14px 8px 8px; }
+  .piece img { width: 40px; height: 40px; object-fit: cover; border-radius: 8px; background: var(--border); }
+  .piece-info { display: flex; flex-direction: column; }
+  .piece-name { font-size: 12.5px; font-weight: 600; }
+  .piece-cat { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 1px; }
+  .day-rest { font-family: var(--font-serif); font-style: italic; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
+
+  /* Closet */
+  .closet-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 16px; margin-top: 16px; }
+  .item-card { position: relative; background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+    overflow: hidden; box-shadow: var(--shadow-sm); transition: box-shadow .15s ease; }
+  .item-card:hover { box-shadow: var(--shadow); }
+  .item-card img { width: 100%; height: 150px; object-fit: cover; display: block; background: var(--panel-2); }
+  .item-body { padding: 12px 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+  .item-del-row { position: absolute; top: 8px; right: 8px; z-index: 2; }
+  .item-del { background: rgba(42,36,31,.55); color: #fff; border: none; border-radius: 50%;
+    width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+    font-size: 15px; line-height: 1; cursor: pointer; transition: background .15s ease; }
+  .item-del:hover { background: var(--bad); }
+  .item-field.name { font-family: var(--font-serif); font-weight: 700; font-size: 13.5px;
+    background: transparent; border: none; border-bottom: 1px solid transparent; border-radius: 0; padding: 2px 0; }
+  .item-field.name:hover, .item-field.name:focus { border-bottom-color: var(--border); outline: none; }
+  .item-field.brand { font-family: var(--font-serif); font-style: italic; color: var(--muted);
+    background: transparent; border: none; padding: 0; font-size: 12px; margin-top: -4px; }
+  .item-field.brand:hover, .item-field.brand:focus { outline: none; }
+  .field-row { display: flex; gap: 6px; }
+  .field-row .item-field { flex: 1; min-width: 0; }
+  .patterned-toggle { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted);
+    white-space: nowrap; padding: 0 2px; cursor: pointer; }
+  .patterned-toggle input[type=checkbox] { accent-color: var(--accent); cursor: pointer; margin: 0; }
+  .suggestions-list { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+  .suggestion-card { display: flex; align-items: center; gap: 12px; background: var(--panel-2);
+    border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; }
+  .suggestion-card img { width: 44px; height: 44px; object-fit: cover; border-radius: 8px; flex-shrink: 0; background: var(--border); }
+  .suggestion-text { flex: 1; font-size: 12.5px; line-height: 1.5; }
+  .suggestion-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0 1px -1px;
+    border: 1px solid rgba(42,36,31,.15); }
+  .suggestion-dismiss { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px;
+    padding: 4px 8px; flex-shrink: 0; font-family: inherit; }
+  .suggestion-dismiss:hover { color: var(--text); }
+  .auth-gate { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center;
+    justify-content: center; z-index: 1000; padding: 20px; }
+  .auth-card { background: var(--panel); border: 1px solid var(--border); border-radius: 16px;
+    padding: 28px 26px; box-shadow: var(--shadow); max-width: 320px; width: 100%; }
+  .auth-card h1 { font-size: 22px; }
+</style>
+</head>
+<body>
+<div class="auth-gate hide" id="authGate">
+  <div class="auth-card">
+    <div class="eyebrow">Work Wardrobe</div>
+    <h1>Outfit Planner</h1>
+    <div class="sub" style="margin-bottom: 16px;">Enter the password to continue.</div>
+    <input type="password" id="authPasswordInput" class="mini-field" placeholder="Password" style="width: 100%; margin-bottom: 10px;" autofocus>
+    <button class="btn" id="authSubmitBtn" style="width: 100%;">Unlock</button>
+    <div class="sub" id="authError" style="margin-top: 10px; min-height: 16px;"></div>
+  </div>
+</div>
+<div class="wrap">
+  <header>
+    <div>
+      <div class="eyebrow">Work Wardrobe</div>
+      <h1>Outfit Planner</h1>
+      <div class="sub">Photo your closet &rarr; get a fresh outfit for every workday</div>
+    </div>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="week">This Week</button>
+    <button class="tab" data-tab="closet">Closet</button>
+  </div>
+
+  <!-- WEEK TAB -->
+  <section id="tab-week">
+    <div class="panel">
+      <div class="row" style="justify-content: space-between;">
+        <h2 id="weekRangeLabel" style="margin:0;">This week</h2>
+        <button class="btn" id="regenWeek">Regenerate week</button>
+      </div>
+      <div class="row" id="locationRow" style="margin-top: 10px;"></div>
+      <div class="sub" id="weatherStatus" style="margin-top: 6px;"></div>
+    </div>
+    <div class="week-grid" id="weekGrid"></div>
+  </section>
+
+  <!-- CLOSET TAB -->
+  <section id="tab-closet" class="hide">
+    <div class="panel">
+      <div class="row" style="justify-content: space-between;">
+        <h2 style="margin:0;">Your closet</h2>
+        <label class="file-btn" id="uploadBtn">
+          Add photos
+          <input type="file" id="file" accept="image/*" multiple>
+        </label>
+      </div>
+      <div class="sub" style="margin-top: 8px;">Upload photos of your clothes. Claude tags each one automatically &mdash; name, category, color, formality &mdash; and you can fix anything it gets wrong.</div>
+      <div class="row hide" id="guessColorsRow" style="margin-top: 10px;">
+        <span class="sub">Some items are missing a color family (from before that field existed).</span>
+        <button class="icon-btn" id="guessColorsBtn">Guess from existing color text</button>
+      </div>
+      <div class="upload-queue" id="uploadQueue"></div>
+      <div id="closetEmpty" class="empty hide">
+        <div class="empty-title">Your closet is empty</div>
+        <div class="empty-sub">Add a few photos above to get started.</div>
+      </div>
+      <div class="closet-grid" id="closetGrid"></div>
+    </div>
+
+    <div class="panel hide" id="suggestionsPanel">
+      <h2 style="margin:0;">Style suggestions</h2>
+      <div class="sub" style="margin-top: 4px;">Pieces that don't coordinate well with the rest of your closet &mdash; a different color might work harder for you.</div>
+      <div class="suggestions-list" id="suggestionsList"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+/* ---------- Constants ---------- */
+const CATEGORIES = ["top","bottom","dress","layer","shoes","accessory"];
+const CATEGORY_LABELS = { top: "Top", bottom: "Bottom", dress: "Dress", layer: "Layer", shoes: "Shoes", accessory: "Accessory" };
+const FORMALITY_ORDER = ["casual", "business_casual", "business", "formal"];
+const FORMALITY_LABELS = { casual: "Casual", business_casual: "Business casual", business: "Business", formal: "Formal" };
+const COLOR_FAMILIES = ["black","white","gray","beige","brown","navy","red","orange","yellow","green","blue","purple","pink"];
+const COLOR_FAMILY_LABELS = Object.fromEntries(COLOR_FAMILIES.map(c => [c, c[0].toUpperCase() + c.slice(1)]));
+const COLOR_FAMILY_SWATCH = {
+  black: "#2a241f", white: "#faf8f4", gray: "#9a938a", beige: "#d8c7a9", brown: "#7a5230", navy: "#233350",
+  red: "#b03a3a", orange: "#c1682f", yellow: "#d8b23a", green: "#5f7a4a", blue: "#3f6fa8", purple: "#7a5a9e", pink: "#c98caa",
+};
+// Free, offline backfill for items tagged before colorFamily existed — guesses a
+// bucket from the existing free-text color description. Order matters: more
+// specific phrases are checked before their broader parent color.
+const COLOR_KEYWORD_MAP = [
+  [/\b(cream|ivory|off[- ]?white|eggshell)\b/i, "white"],
+  [/\bwhite\b/i, "white"],
+  [/\b(charcoal|slate|silver|heather)\b/i, "gray"],
+  [/\b(gray|grey)\b/i, "gray"],
+  [/\b(taupe|tan|khaki|camel|sand|nude|stone)\b/i, "beige"],
+  [/\bbeige\b/i, "beige"],
+  [/\b(chocolate|espresso|cognac|caramel|coffee|chestnut)\b/i, "brown"],
+  [/\bbrown\b/i, "brown"],
+  [/\bnavy\b/i, "navy"],
+  [/\bblack\b/i, "black"],
+  [/\b(burgundy|maroon|wine|crimson)\b/i, "red"],
+  [/\bred\b/i, "red"],
+  [/\b(rust|terracotta|burnt orange|amber)\b/i, "orange"],
+  [/\borange\b/i, "orange"],
+  [/\b(mustard|gold|golden)\b/i, "yellow"],
+  [/\byellow\b/i, "yellow"],
+  [/\b(olive|sage|forest|emerald|mint)\b/i, "green"],
+  [/\bgreen\b/i, "green"],
+  [/\b(teal|denim|cobalt|royal blue|sky blue)\b/i, "blue"],
+  [/\bblue\b/i, "blue"],
+  [/\b(lavender|violet|plum|mauve|lilac)\b/i, "purple"],
+  [/\bpurple\b/i, "purple"],
+  [/\b(blush|rose|fuchsia|magenta)\b/i, "pink"],
+  [/\bpink\b/i, "pink"],
+];
+function guessColorFamily(colorText) {
+  if (!colorText) return "";
+  for (const [pattern, family] of COLOR_KEYWORD_MAP) {
+    if (pattern.test(colorText)) return family;
+  }
+  return "";
+}
+const WEATHER_CODES = {
+  0: ["☀️","Clear"], 1: ["🌤️","Mostly clear"], 2: ["⛅","Partly cloudy"], 3: ["☁️","Overcast"],
+  45: ["🌫️","Fog"], 48: ["🌫️","Fog"],
+  51: ["🌦️","Light drizzle"], 53: ["🌦️","Drizzle"], 55: ["🌦️","Heavy drizzle"],
+  56: ["🌧️","Freezing drizzle"], 57: ["🌧️","Freezing drizzle"],
+  61: ["🌧️","Light rain"], 63: ["🌧️","Rain"], 65: ["🌧️","Heavy rain"],
+  66: ["🌧️","Freezing rain"], 67: ["🌧️","Freezing rain"],
+  71: ["🌨️","Light snow"], 73: ["🌨️","Snow"], 75: ["🌨️","Heavy snow"], 77: ["🌨️","Snow grains"],
+  80: ["🌦️","Rain showers"], 81: ["🌦️","Rain showers"], 82: ["⛈️","Violent showers"],
+  85: ["🌨️","Snow showers"], 86: ["🌨️","Snow showers"],
+  95: ["⛈️","Thunderstorm"], 96: ["⛈️","Thunderstorm w/ hail"], 99: ["⛈️","Thunderstorm w/ hail"],
+};
+function weatherIcon(code) { return (WEATHER_CODES[code] || ["🌡️","Weather"])[0]; }
+function weatherLabel(code) { return (WEATHER_CODES[code] || ["🌡️","Weather"])[1]; }
+
+/* ---------- Auth ----------
+   Shared-password gate — the server rejects /api/* calls without a valid token
+   (see server.py). The token is just sha256(password), stored once after a
+   successful login; it's not a per-session secret, so treat it as equivalent to
+   the password itself (don't share it outside this browser). */
+const AUTH_TOKEN_KEY = "outfit.authToken.v1";
+function getAuthToken() { return localStorage.getItem(AUTH_TOKEN_KEY) || ""; }
+function setAuthToken(token) { localStorage.setItem(AUTH_TOKEN_KEY, token); }
+function clearAuthToken() { localStorage.removeItem(AUTH_TOKEN_KEY); }
+
+async function apiFetch(url, options = {}) {
+  const headers = { ...(options.headers || {}) };
+  const token = getAuthToken();
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const res = await fetch(url, { ...options, headers });
+  if (res.status === 401) {
+    clearAuthToken();
+    document.getElementById("authGate").classList.remove("hide");
+  }
+  return res;
+}
+
+async function handleAuthSubmit() {
+  const input = document.getElementById("authPasswordInput");
+  const errorEl = document.getElementById("authError");
+  const password = input.value;
+  if (!password) return;
+  errorEl.textContent = "Checking…";
+  try {
+    const res = await fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) { errorEl.textContent = data.error || "Wrong password."; return; }
+    setAuthToken(data.token);
+    location.reload(); // simplest way to cleanly resume init() with a valid token
+  } catch (err) {
+    errorEl.textContent = "Could not reach the server.";
+  }
+}
+document.getElementById("authSubmitBtn").addEventListener("click", handleAuthSubmit);
+document.getElementById("authPasswordInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") handleAuthSubmit();
+});
+
+/* ---------- Storage ----------
+   Shared server-side state (state.json on the server) so your closet, week, and
+   settings are the same whether you're on your phone or your computer. The app
+   keeps an in-memory copy (appState) and writes through to the server on every
+   change; reads stay synchronous against that in-memory copy so the rest of the
+   code doesn't need to change. */
+let appState = { items: [], week: {}, events: {}, location: null, weatherCache: null, tagCount: 0, dismissedSuggestions: [] };
+
+async function fetchState() {
+  try {
+    const res = await apiFetch("/api/state");
+    if (res.status === 401) return false; // auth gate is now showing
+    if (!res.ok) throw new Error(`Failed to load state (${res.status})`);
+    appState = await res.json();
+    return true;
+  } catch (err) {
+    console.error("Could not load shared state from the server:", err);
+    return false;
+  }
+}
+
+function persistState(partial) {
+  apiFetch("/api/state", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(partial),
+  }).catch(err => console.error("Could not save to the server:", err));
+}
+
+function loadItems() { return appState.items || []; }
+function saveItems(items) { appState.items = items; persistState({ items }); }
+
+function loadWeek() { return appState.week || {}; }
+function saveWeek(week) { appState.week = week; persistState({ week }); }
+
+function loadEvents() { return appState.events || {}; }
+function saveEvents(events) { appState.events = events; persistState({ events }); }
+
+function loadDismissedSuggestions() { return appState.dismissedSuggestions || []; }
+function saveDismissedSuggestions(ids) { appState.dismissedSuggestions = ids; persistState({ dismissedSuggestions: ids }); }
+
+function loadLocation() { return appState.location || null; }
+function saveLocation(loc) { appState.location = loc; persistState({ location: loc }); }
+
+function loadWeatherCache() { return appState.weatherCache || null; }
+function saveWeatherCache(cache) { appState.weatherCache = cache; persistState({ weatherCache: cache }); }
+
+function getWeatherForDate(iso) {
+  const cache = loadWeatherCache();
+  if (!cache || !cache.byDate) return null;
+  return cache.byDate[iso] || null;
+}
+
+/* ---------- Date helpers ---------- */
+function pad2(n) { return String(n).padStart(2, "0"); }
+function toISODate(d) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; }
+function startOfWorkWeek(base) {
+  const d = new Date(base);
+  d.setHours(0, 0, 0, 0);
+  const dow = d.getDay(); // 0=Sun..6=Sat
+  if (dow === 0) d.setDate(d.getDate() + 1);       // Sunday -> next Monday
+  else if (dow === 6) d.setDate(d.getDate() + 2);  // Saturday -> next Monday
+  else d.setDate(d.getDate() - (dow - 1));         // Mon..Fri -> back to Monday
+  return d;
+}
+function workWeekDates() {
+  const monday = startOfWorkWeek(new Date());
+  return Array.from({ length: 5 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return d;
+  });
+}
+function fmtDayLabel(d) { return d.toLocaleDateString(undefined, { weekday: "short" }); }
+function fmtDateLabel(d) { return d.toLocaleDateString(undefined, { month: "short", day: "numeric" }); }
+
+/* ---------- Image resize helper ---------- */
+function readAndResize(file, maxDim, quality) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error);
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > maxDim) { height = Math.round(height * maxDim / width); width = maxDim; }
+        else if (height > maxDim) { width = Math.round(width * maxDim / height); height = maxDim; }
+        const canvas = document.createElement("canvas");
+        canvas.width = width; canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function humanizeFilename(filename) {
+  const base = filename.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").trim();
+  if (!base) return "New item";
+  return base.replace(/\w\S*/g, w => w[0].toUpperCase() + w.slice(1).toLowerCase());
+}
+
+/* ---------- Closet rendering ---------- */
+function renderCloset() {
+  const items = loadItems();
+  const grid = document.getElementById("closetGrid");
+  const empty = document.getElementById("closetEmpty");
+  grid.innerHTML = "";
+  empty.classList.toggle("hide", items.length > 0);
+
+  items.forEach((item) => {
+    const card = document.createElement("div");
+    card.className = "item-card";
+    card.innerHTML = `
+      <img src="${item.thumb}" alt="${escapeHtml(item.name)}">
+      <div class="item-body">
+        <div class="item-del-row">
+          <button class="item-del" data-id="${item.id}" title="Remove">&times;</button>
+        </div>
+        <input class="item-field name" data-id="${item.id}" data-field="name" value="${escapeHtml(item.name)}" placeholder="Item name">
+        <input class="item-field brand" data-id="${item.id}" data-field="brand" value="${escapeHtml(item.brand || "")}" placeholder="Brand (optional)">
+        <div class="field-row">
+          <select class="item-field" data-id="${item.id}" data-field="category">
+            ${CATEGORIES.map(c => `<option value="${c}" ${c===item.category?"selected":""}>${CATEGORY_LABELS[c]}</option>`).join("")}
+          </select>
+          <select class="item-field" data-id="${item.id}" data-field="colorFamily">
+            <option value="">Color family&hellip;</option>
+            ${COLOR_FAMILIES.map(c => `<option value="${c}" ${c===item.colorFamily?"selected":""}>${COLOR_FAMILY_LABELS[c]}</option>`).join("")}
+          </select>
+        </div>
+        <div class="field-row">
+          <select class="item-field" data-id="${item.id}" data-field="formality">
+            ${FORMALITY_ORDER.map(f => `<option value="${f}" ${f===item.formality?"selected":""}>${FORMALITY_LABELS[f]}</option>`).join("")}
+          </select>
+          <label class="patterned-toggle">
+            <input type="checkbox" class="item-field" data-id="${item.id}" data-field="patterned" ${item.patterned ? "checked" : ""}>
+            Patterned
+          </label>
+        </div>
+        <input class="item-field" data-id="${item.id}" data-field="color" value="${escapeHtml(item.color)}" placeholder="Color (optional)">
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+
+  grid.querySelectorAll(".item-del").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const items = loadItems().filter(i => i.id !== btn.dataset.id);
+      saveItems(items);
+      renderCloset();
+      renderWeek();
+    });
+  });
+  grid.querySelectorAll(".item-field").forEach(field => {
+    const isCheckbox = field.type === "checkbox";
+    const evt = (field.tagName === "SELECT" || isCheckbox) ? "change" : "input";
+    field.addEventListener(evt, () => {
+      const items = loadItems();
+      const item = items.find(i => i.id === field.dataset.id);
+      if (!item) return;
+      item[field.dataset.field] = isCheckbox ? field.checked : field.value;
+      saveItems(items);
+      renderWeek();
+      renderSuggestions();
+    });
+  });
+
+  const guessRow = document.getElementById("guessColorsRow");
+  guessRow.classList.toggle("hide", !items.some(i => !i.colorFamily && i.color));
+
+  renderSuggestions();
+}
+
+document.getElementById("guessColorsBtn").addEventListener("click", () => {
+  const items = loadItems();
+  let guessed = 0;
+  items.forEach(item => {
+    if (!item.colorFamily && item.color) {
+      const family = guessColorFamily(item.color);
+      if (family) { item.colorFamily = family; guessed++; }
+    }
+  });
+  saveItems(items);
+  renderCloset();
+  renderWeek();
+  alert(guessed > 0
+    ? `Guessed a color family for ${guessed} item(s). Double-check them in the Color family dropdown and fix anything that looks wrong.`
+    : `Couldn't confidently guess a color family from the remaining items' color text — set them manually instead.`);
+});
+
+function escapeHtml(s) {
+  const d = document.createElement("div");
+  d.textContent = s == null ? "" : String(s);
+  return d.innerHTML;
+}
+
+/* ---------- AI tagging ----------
+   tagCount is tracked server-side (see server.py) so the safety check-in below
+   reflects total calls across every device, not just this one. */
+const TAG_COUNT_WARN_EVERY = 50;
+
+function loadTagCount() { return appState.tagCount || 0; }
+
+async function tagItem(dataUrl) {
+  const base64 = dataUrl.split(",")[1];
+  const res = await apiFetch("/api/tag-item", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ imageBase64: base64, mediaType: "image/jpeg" }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `Tagging failed (${res.status})`);
+  }
+  const tags = await res.json();
+  if (typeof tags.tagCount === "number") appState.tagCount = tags.tagCount;
+  return tags;
+}
+
+/* ---------- Upload flow ---------- */
+document.getElementById("file").addEventListener("change", async (e) => {
+  const files = Array.from(e.target.files || []);
+  e.target.value = "";
+  if (!files.length) return;
+
+  const uploadBtn = document.getElementById("uploadBtn");
+  const queue = document.getElementById("uploadQueue");
+  uploadBtn.classList.add("hide");
+
+  for (const file of files) {
+    // Safety check-in every N auto-tagged photos so a bug can't silently run up API cost.
+    if (loadTagCount() > 0 && loadTagCount() % TAG_COUNT_WARN_EVERY === 0) {
+      const keepGoing = confirm(
+        `You've auto-tagged ${loadTagCount()} photos so far. Continue auto-tagging the rest of this batch?`
+      );
+      if (!keepGoing) break;
+    }
+
+    const row = document.createElement("div");
+    row.className = "queue-row";
+    row.innerHTML = `<div class="spinner"></div><span>Tagging ${escapeHtml(file.name)}&hellip;</span>`;
+    queue.appendChild(row);
+
+    try {
+      const [fullRes, thumb] = await Promise.all([
+        readAndResize(file, 1024, 0.85),
+        readAndResize(file, 400, 0.75),
+      ]);
+      const tags = await tagItem(fullRes);
+      const items = loadItems();
+      items.push({
+        id: `item_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        name: tags.name || humanizeFilename(file.name),
+        brand: tags.brand || "",
+        category: CATEGORIES.includes(tags.category) ? tags.category : "top",
+        color: tags.color || "",
+        colorFamily: COLOR_FAMILIES.includes(tags.colorFamily) ? tags.colorFamily : "",
+        patterned: !!tags.patterned,
+        formality: FORMALITY_ORDER.includes(tags.formality) ? tags.formality : "business_casual",
+        thumb,
+      });
+      saveItems(items);
+      row.remove();
+    } catch (err) {
+      row.innerHTML = `<span class="status err">${escapeHtml(file.name)}: ${escapeHtml(err.message)}</span>`;
+    }
+  }
+
+  uploadBtn.classList.remove("hide");
+  renderCloset();
+  renderWeek();
+});
+
+/* ---------- Weather ---------- */
+let weatherError = null;
+
+async function geocodeLocation(query) {
+  const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=en&format=json`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Location lookup failed.");
+  const data = await res.json();
+  const hit = data.results && data.results[0];
+  if (!hit) throw new Error("Couldn't find that location.");
+  const label = [hit.name, hit.admin1, hit.country_code].filter(Boolean).join(", ");
+  return { label, lat: hit.latitude, lon: hit.longitude };
+}
+
+async function fetchWeatherForWeek(loc) {
+  const dates = workWeekDates();
+  const start = toISODate(dates[0]);
+  const end = toISODate(dates[4]);
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lon}` +
+    `&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode` +
+    `&temperature_unit=fahrenheit&timezone=auto&start_date=${start}&end_date=${end}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error("Weather lookup failed.");
+  const data = await res.json();
+  const byDate = {};
+  (data.daily && data.daily.time || []).forEach((iso, idx) => {
+    byDate[iso] = {
+      tempMaxF: data.daily.temperature_2m_max[idx],
+      tempMinF: data.daily.temperature_2m_min[idx],
+      precipProb: data.daily.precipitation_probability_max ? data.daily.precipitation_probability_max[idx] : null,
+      code: data.daily.weathercode[idx],
+    };
+  });
+  saveWeatherCache({ fetchedAt: Date.now(), weekStart: start, byDate });
+}
+
+async function ensureWeatherLoaded() {
+  const loc = loadLocation();
+  if (!loc) { weatherError = null; return; }
+  const weekStart = toISODate(workWeekDates()[0]);
+  const cache = loadWeatherCache();
+  const fresh = cache && cache.weekStart === weekStart && (Date.now() - cache.fetchedAt) < 6 * 60 * 60 * 1000;
+  if (fresh) { weatherError = null; return; }
+  try {
+    await fetchWeatherForWeek(loc);
+    weatherError = null;
+  } catch (err) {
+    console.error("Weather fetch failed:", err);
+    weatherError = "Couldn't load weather right now.";
+  }
+}
+
+function layerProbabilityFor(iso) {
+  const w = getWeatherForDate(iso);
+  if (!w) return 0.5;
+  let prob = 0.5;
+  if (w.tempMaxF < 55) prob = 0.9;
+  else if (w.tempMaxF > 78) prob = 0.15;
+  if (w.precipProb != null && w.precipProb >= 50) prob = Math.min(0.95, prob + 0.2);
+  return prob;
+}
+
+let locationEditing = false;
+
+function renderLocationControl() {
+  const row = document.getElementById("locationRow");
+  const loc = loadLocation();
+  if (!locationEditing && loc) {
+    row.innerHTML = `<span class="sub">📍 ${escapeHtml(loc.label)}</span> <button class="icon-btn" id="changeLocationBtn">Change</button>`;
+    document.getElementById("changeLocationBtn").addEventListener("click", () => {
+      locationEditing = true;
+      renderLocationControl();
+    });
+  } else {
+    row.innerHTML = `
+      <input class="mini-field" id="locationInput" placeholder="City, state (for weather)" style="max-width: 220px;" value="${loc ? escapeHtml(loc.label) : ""}">
+      <button class="btn" id="saveLocationBtn">Save</button>
+      ${loc ? `<button class="ghost icon-btn" id="cancelLocationBtn">Cancel</button>` : ""}
+    `;
+    document.getElementById("saveLocationBtn").addEventListener("click", handleSaveLocation);
+    document.getElementById("locationInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") handleSaveLocation();
+    });
+    const cancelBtn = document.getElementById("cancelLocationBtn");
+    if (cancelBtn) cancelBtn.addEventListener("click", () => { locationEditing = false; renderLocationControl(); });
+  }
+}
+
+async function handleSaveLocation() {
+  const input = document.getElementById("locationInput");
+  const query = input.value.trim();
+  if (!query) return;
+  const status = document.getElementById("weatherStatus");
+
+  status.textContent = "Looking up location…";
+  let loc;
+  try {
+    loc = await geocodeLocation(query);
+  } catch (err) {
+    status.textContent = err.message || "Couldn't find that location.";
+    return;
+  }
+
+  saveLocation(loc);
+  locationEditing = false;
+  renderLocationControl();
+  status.textContent = "Fetching weather…";
+  try {
+    await fetchWeatherForWeek(loc);
+    weatherError = null;
+  } catch (err) {
+    console.error("Weather fetch failed:", err);
+    weatherError = "Couldn't load weather right now.";
+  }
+  generateWeek(); // refresh outfits so layer choices reflect the forecast
+}
+
+function renderWeatherStatus() {
+  const status = document.getElementById("weatherStatus");
+  const loc = loadLocation();
+  if (!loc) { status.textContent = "Set a location above for weather-aware outfits (optional)."; return; }
+  status.textContent = weatherError || "";
+}
+
+/* ---------- Outfit generation ---------- */
+function byCategory(items) {
+  const map = {};
+  CATEGORIES.forEach(c => map[c] = []);
+  items.forEach(i => { if (map[i.category]) map[i.category].push(i); });
+  return map;
+}
+
+function formalityDistance(a, b) {
+  return Math.abs(FORMALITY_ORDER.indexOf(a) - FORMALITY_ORDER.indexOf(b));
+}
+
+function pickItem(pool, targetFormality, usedCounts) {
+  if (!pool.length) return null;
+  let candidates = pool.filter(i => formalityDistance(i.formality, targetFormality) <= 1);
+  if (!candidates.length) candidates = pool.slice();
+
+  // Prefer items used least so far this week; break ties randomly.
+  const minUses = Math.min(...candidates.map(i => usedCounts[i.id] || 0));
+  const leastUsed = candidates.filter(i => (usedCounts[i.id] || 0) === minUses);
+  const pick = leastUsed[Math.floor(Math.random() * leastUsed.length)];
+  usedCounts[pick.id] = (usedCounts[pick.id] || 0) + 1;
+  return pick;
+}
+
+/* ---------- Color theory ----------
+   Neutrals (black/white/gray/beige/brown/navy) pair with anything. For the seven
+   chromatic families, position them on a simplified 7-point color wheel and score
+   by circular distance: same family = monochrome (great), 1 step = analogous
+   (great), 3 steps = roughly complementary (a deliberate, stylish contrast —
+   also great), 2 steps = the in-between combinations that tend to read as a
+   clash, so those score lower. This is a simplification of real color theory,
+   not a physically accurate hue wheel — good enough to avoid obviously
+   clashing pairings without needing a styling AI call for every outfit. */
+const NEUTRAL_COLORS = new Set(["black", "white", "gray", "beige", "brown", "navy"]);
+const HUE_WHEEL = ["red", "orange", "yellow", "green", "blue", "purple", "pink"];
+
+function colorCompatibility(famA, famB) {
+  if (!famA || !famB) return 0.7; // unknown color — don't penalize, just stay neutral-ish
+  if (NEUTRAL_COLORS.has(famA) || NEUTRAL_COLORS.has(famB)) return 1.0; // neutrals go with anything
+  if (famA === famB) return 1.0; // tonal / monochrome
+  const ia = HUE_WHEEL.indexOf(famA), ib = HUE_WHEEL.indexOf(famB);
+  if (ia === -1 || ib === -1) return 0.7;
+  const dist = Math.min(Math.abs(ia - ib), HUE_WHEEL.length - Math.abs(ia - ib));
+  if (dist === 1) return 0.9;   // analogous
+  if (dist === 3) return 0.85;  // complementary-ish contrast
+  return 0.55;                  // the more dissonant in-between combinations
+}
+
+function pairCompatibility(item, partner) {
+  if (!partner) return 1;
+  let score = colorCompatibility(item.colorFamily, partner.colorFamily);
+  if (item.patterned && partner.patterned) score -= 0.35; // avoid stacking two busy patterns
+  return score;
+}
+
+// Like pickItem, but among the least-used tier of candidates, prefers whichever
+// coordinates best (color + pattern) with an already-chosen partner piece.
+function pickCoordinatedItem(pool, targetFormality, usedCounts, partner) {
+  if (!pool.length) return null;
+  let candidates = pool.filter(i => formalityDistance(i.formality, targetFormality) <= 1);
+  if (!candidates.length) candidates = pool.slice();
+
+  const minUses = Math.min(...candidates.map(i => usedCounts[i.id] || 0));
+  const rotationEligible = candidates.filter(i => (usedCounts[i.id] || 0) <= minUses + 1);
+  const scoringPool = rotationEligible.length ? rotationEligible : candidates;
+
+  const scored = scoringPool.map(i => ({ item: i, score: pairCompatibility(i, partner) }));
+  const maxScore = Math.max(...scored.map(s => s.score));
+  const best = scored.filter(s => s.score >= maxScore - 0.001);
+  const pick = best[Math.floor(Math.random() * best.length)].item;
+  usedCounts[pick.id] = (usedCounts[pick.id] || 0) + 1;
+  return pick;
+}
+
+function buildOutfit(grouped, target, usedCounts, iso) {
+  const outfit = {};
+  const canDress = grouped.dress.length > 0;
+  const canTopBottom = grouped.top.length > 0 && grouped.bottom.length > 0;
+  const wearDress = canDress && canTopBottom
+    ? Math.random() < (grouped.dress.length / (grouped.dress.length + grouped.top.length))
+    : canDress; // only one option available (or neither) — pick dress iff it's the only one
+
+  let base; // the top or dress — used as the color/pattern anchor for the layer
+  if (wearDress) {
+    outfit.dress = pickItem(grouped.dress, target, usedCounts);
+    base = outfit.dress;
+  } else {
+    outfit.top = pickItem(grouped.top, target, usedCounts);
+    outfit.bottom = pickCoordinatedItem(grouped.bottom, target, usedCounts, outfit.top);
+    base = outfit.top;
+  }
+  outfit.shoes = pickItem(grouped.shoes, target, usedCounts);
+  if (grouped.layer.length && Math.random() < layerProbabilityFor(iso)) {
+    outfit.layer = pickCoordinatedItem(grouped.layer, target, usedCounts, base);
+  }
+  if (grouped.accessory.length && Math.random() < 0.4) outfit.accessory = pickItem(grouped.accessory, target, usedCounts);
+  return Object.fromEntries(Object.entries(outfit).filter(([, v]) => v).map(([k, v]) => [k, v.id]));
+}
+
+/* ---------- Style suggestions ----------
+   For each item, look at the categories it would actually get paired with (mirrors
+   buildOutfit's pairing: top<->bottom/layer, bottom<->top/layer, dress<->layer,
+   layer<->top/bottom/dress) and see how well its color coordinates with those
+   pieces on average. If another color family would coordinate meaningfully
+   better with the rest of the closet, suggest it — this is closet-versatility
+   advice, not a claim about what looks best in isolation. */
+const PARTNER_CATEGORIES = { top: ["bottom", "layer"], bottom: ["top", "layer"], dress: ["layer"], layer: ["top", "bottom", "dress"] };
+const SUGGESTION_MIN_PARTNERS = 3;
+const SUGGESTION_MIN_IMPROVEMENT = 0.15;
+
+function averageCompatibility(colorFamily, partners) {
+  const scores = partners.map(p => colorCompatibility(colorFamily, p.colorFamily));
+  return scores.reduce((a, b) => a + b, 0) / scores.length;
+}
+
+function computeColorSuggestions(items) {
+  const grouped = byCategory(items);
+  const suggestions = [];
+
+  items.forEach(item => {
+    const partnerCats = PARTNER_CATEGORIES[item.category];
+    if (!partnerCats || !item.colorFamily || NEUTRAL_COLORS.has(item.colorFamily)) return;
+
+    const partners = partnerCats.flatMap(c => grouped[c] || []).filter(p => p.colorFamily);
+    if (partners.length < SUGGESTION_MIN_PARTNERS) return;
+
+    const currentAvg = averageCompatibility(item.colorFamily, partners);
+    let best = { family: null, avg: currentAvg };
+    COLOR_FAMILIES.forEach(family => {
+      if (family === item.colorFamily) return;
+      const avg = averageCompatibility(family, partners);
+      if (avg > best.avg) best = { family, avg };
+    });
+
+    if (best.family && best.avg - currentAvg >= SUGGESTION_MIN_IMPROVEMENT) {
+      suggestions.push({ item, currentAvg, suggestedFamily: best.family, suggestedAvg: best.avg });
+    }
+  });
+
+  return suggestions.sort((a, b) => (b.suggestedAvg - b.currentAvg) - (a.suggestedAvg - a.currentAvg));
+}
+
+function renderSuggestions() {
+  const panel = document.getElementById("suggestionsPanel");
+  const list = document.getElementById("suggestionsList");
+  const dismissed = new Set(loadDismissedSuggestions());
+
+  const suggestions = computeColorSuggestions(loadItems()).filter(s => !dismissed.has(s.item.id));
+  panel.classList.toggle("hide", suggestions.length === 0);
+  if (!suggestions.length) return;
+
+  list.innerHTML = suggestions.slice(0, 5).map(s => `
+    <div class="suggestion-card">
+      <img src="${s.item.thumb}" alt="${escapeHtml(s.item.name)}">
+      <div class="suggestion-text">
+        Your <b>${escapeHtml(s.item.name)}</b> pairs well with about ${Math.round(s.currentAvg * 100)}% of your closet.
+        A <span class="suggestion-swatch" style="background:${COLOR_FAMILY_SWATCH[s.suggestedFamily]}"></span><b>${COLOR_FAMILY_LABELS[s.suggestedFamily]}</b> version would pair with about ${Math.round(s.suggestedAvg * 100)}% instead.
+      </div>
+      <button class="suggestion-dismiss" data-id="${s.item.id}">Dismiss</button>
+    </div>
+  `).join("");
+
+  list.querySelectorAll(".suggestion-dismiss").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const ids = loadDismissedSuggestions();
+      if (!ids.includes(btn.dataset.id)) saveDismissedSuggestions([...ids, btn.dataset.id]);
+      renderSuggestions();
+    });
+  });
+}
+
+function targetFormalityFor(iso, formalityPool, events) {
+  const entry = events[iso];
+  if (entry && entry.formality && entry.formality !== "auto") return entry.formality;
+  return formalityPool[Math.floor(Math.random() * formalityPool.length)];
+}
+
+function generateWeek() {
+  const items = loadItems();
+  const grouped = byCategory(items);
+  const usedCounts = {};
+  const days = {};
+  const dates = workWeekDates();
+  const formalityPool = items.length ? items.map(i => i.formality) : FORMALITY_ORDER;
+  const events = loadEvents();
+
+  dates.forEach(d => {
+    const iso = toISODate(d);
+    const target = targetFormalityFor(iso, formalityPool, events);
+    days[iso] = buildOutfit(grouped, target, usedCounts, iso);
+  });
+
+  saveWeek({ weekStart: toISODate(dates[0]), days });
+  renderWeek();
+}
+
+function regenerateDay(iso) {
+  const items = loadItems();
+  const grouped = byCategory(items);
+  const week = loadWeek();
+  const days = week.days || {};
+
+  // Count current usage across the rest of the week so the reroll still spreads pieces out.
+  const usedCounts = {};
+  Object.entries(days).forEach(([d, outfit]) => {
+    if (d === iso) return;
+    Object.values(outfit).forEach(id => { usedCounts[id] = (usedCounts[id] || 0) + 1; });
+  });
+
+  const events = loadEvents();
+  const target = targetFormalityFor(iso, FORMALITY_ORDER, events);
+  days[iso] = buildOutfit(grouped, target, usedCounts, iso);
+  saveWeek({ weekStart: week.weekStart || toISODate(workWeekDates()[0]), days });
+  renderWeek();
+}
+
+/* ---------- Week rendering ---------- */
+function renderWeek() {
+  const items = loadItems();
+  const byId = Object.fromEntries(items.map(i => [i.id, i]));
+  const dates = workWeekDates();
+  const weekStartIso = toISODate(dates[0]);
+  const week = loadWeek();
+
+  const hasEnoughForOutfit = byCategory(items);
+  const canGenerate = hasEnoughForOutfit.shoes.length &&
+    (hasEnoughForOutfit.dress.length || (hasEnoughForOutfit.top.length && hasEnoughForOutfit.bottom.length));
+
+  document.getElementById("regenWeek").disabled = !canGenerate;
+  document.getElementById("weekRangeLabel").textContent = `${fmtDateLabel(dates[0])} – ${fmtDateLabel(dates[4])}`;
+
+  const isStale = week.weekStart !== weekStartIso || !week.days || Object.keys(week.days).length === 0;
+  if (canGenerate && isStale) {
+    generateWeek();
+    return; // generateWeek() calls renderWeek() again once the new week is saved
+  }
+
+  renderLocationControl();
+  renderWeatherStatus();
+
+  const grid = document.getElementById("weekGrid");
+  grid.innerHTML = "";
+  const events = loadEvents();
+
+  dates.forEach(d => {
+    const iso = toISODate(d);
+    const card = document.createElement("div");
+    card.className = "day-card";
+
+    if (!canGenerate) {
+      card.innerHTML = `
+        <div class="day-head"><span class="day-name">${fmtDayLabel(d)}<span class="day-date">${fmtDateLabel(d)}</span></span></div>
+        <div class="day-rest">Add shoes plus a top+bottom (or a dress) in your Closet to generate outfits.</div>
+      `;
+      grid.appendChild(card);
+      return;
+    }
+
+    const outfit = (week.days && week.days[iso]) || {};
+    const pieceOrder = ["dress", "top", "bottom", "layer", "shoes", "accessory"];
+    const pieces = pieceOrder
+      .map(cat => outfit[cat] ? byId[outfit[cat]] : null)
+      .filter(Boolean);
+
+    const weather = getWeatherForDate(iso);
+    const weatherHtml = weather ? `
+      <div class="day-weather">${weatherIcon(weather.code)} ${Math.round(weather.tempMinF)}&deg;&ndash;${Math.round(weather.tempMaxF)}&deg;F &middot; ${weatherLabel(weather.code)}${weather.precipProb != null ? ` &middot; ${weather.precipProb}% rain` : ""}</div>
+    ` : "";
+
+    const eventEntry = events[iso] || { note: "", formality: "auto" };
+
+    card.innerHTML = `
+      <div class="day-head">
+        <span class="day-name">${fmtDayLabel(d)}<span class="day-date">${fmtDateLabel(d)}</span></span>
+        <button class="icon-btn" data-day="${iso}">Shuffle</button>
+      </div>
+      ${weatherHtml}
+      <div class="day-extras">
+        <input class="mini-field event-field" data-iso="${iso}" placeholder="Event (optional)" value="${escapeHtml(eventEntry.note)}">
+        <select class="mini-field dress-code-field" data-iso="${iso}">
+          <option value="auto" ${eventEntry.formality==="auto"?"selected":""}>Auto dress code</option>
+          ${FORMALITY_ORDER.map(f => `<option value="${f}" ${eventEntry.formality===f?"selected":""}>${FORMALITY_LABELS[f]}</option>`).join("")}
+        </select>
+      </div>
+      <div class="outfit-pieces">
+        ${pieces.length ? pieces.map(p => `
+          <div class="piece">
+            <img src="${p.thumb}" alt="${escapeHtml(p.name)}">
+            <div class="piece-info">
+              <span class="piece-name">${escapeHtml(p.name)}</span>
+              <span class="piece-cat">${CATEGORY_LABELS[p.category] || p.category}</span>
+            </div>
+          </div>
+        `).join("") : `<div class="day-rest">Some pieces were removed from your closet &mdash; shuffle to rebuild this outfit.</div>`}
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+
+  grid.querySelectorAll("[data-day]").forEach(btn => {
+    btn.addEventListener("click", () => regenerateDay(btn.dataset.day));
+  });
+  grid.querySelectorAll(".event-field").forEach(inp => {
+    inp.addEventListener("input", () => {
+      const events = loadEvents();
+      const iso = inp.dataset.iso;
+      events[iso] = events[iso] || { note: "", formality: "auto" };
+      events[iso].note = inp.value;
+      saveEvents(events);
+    });
+  });
+  grid.querySelectorAll(".dress-code-field").forEach(sel => {
+    sel.addEventListener("change", () => {
+      const events = loadEvents();
+      const iso = sel.dataset.iso;
+      events[iso] = events[iso] || { note: "", formality: "auto" };
+      events[iso].formality = sel.value;
+      saveEvents(events);
+      regenerateDay(iso); // reflect the new dress code immediately
+    });
+  });
+}
+
+document.getElementById("regenWeek").addEventListener("click", generateWeek);
+
+/* ---------- Tabs ---------- */
+document.querySelectorAll(".tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    document.querySelectorAll("section[id^='tab-']").forEach(s => s.classList.add("hide"));
+    document.getElementById(`tab-${tab.dataset.tab}`).classList.remove("hide");
+  });
+});
+
+/* ---------- One-time migration from the old per-browser localStorage ---------- */
+function migrateLegacyLocalStorage() {
+  if ((appState.items || []).length > 0) return; // shared state already has data — nothing to migrate
+
+  let legacyItems;
+  try { legacyItems = JSON.parse(localStorage.getItem("outfit.items.v1")); } catch { legacyItems = null; }
+  if (!legacyItems || !legacyItems.length) return;
+
+  const importIt = confirm(
+    `Found ${legacyItems.length} closet item(s) saved in this browser from before shared storage. Import them now?`
+  );
+  if (!importIt) return;
+
+  const partial = { items: legacyItems };
+  appState.items = legacyItems;
+
+  const legacyKeys = { week: "outfit.week.v2", events: "outfit.events.v1", location: "outfit.location.v1", weatherCache: "outfit.weather.v1" };
+  for (const [field, key] of Object.entries(legacyKeys)) {
+    try {
+      const value = JSON.parse(localStorage.getItem(key));
+      if (value) { appState[field] = value; partial[field] = value; }
+    } catch { /* skip unreadable legacy value */ }
+  }
+
+  persistState(partial);
+}
+
+/* ---------- Init ---------- */
+(async function init() {
+  const authenticated = await fetchState();
+  if (!authenticated) return; // auth gate is showing; page reloads after a successful login
+  migrateLegacyLocalStorage();
+  renderCloset();
+  await ensureWeatherLoaded();
+  renderWeek();
+})();
+</script>
+</body>
+</html>
