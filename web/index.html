@@ -108,6 +108,9 @@
 
   /* Closet */
   .closet-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 16px; margin-top: 16px; }
+  .closet-section-header { grid-column: 1 / -1; font-family: var(--font-serif); font-size: 15px; font-weight: 500;
+    color: var(--text); padding-bottom: 6px; margin-top: 6px; border-bottom: 1px solid var(--border); }
+  .closet-section-header:first-child { margin-top: 0; }
   .item-card { position: relative; background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
     overflow: hidden; box-shadow: var(--shadow-sm); transition: box-shadow .15s ease; }
   .item-card:hover { box-shadow: var(--shadow); }
@@ -196,10 +199,10 @@
           <input type="file" id="file" accept="image/*" multiple>
         </label>
       </div>
-      <div class="sub" style="margin-top: 8px;">Upload photos of your clothes. Claude tags each one automatically &mdash; name, category, color, formality &mdash; and you can fix anything it gets wrong.</div>
+      <div class="sub" style="margin-top: 8px;">Upload photos of your clothes. Claude tags each one automatically &mdash; name, category, color, texture, formality &mdash; and you can fix anything it gets wrong.</div>
       <div class="row hide" id="guessColorsRow" style="margin-top: 10px;">
-        <span class="sub">Some items are missing a color family (from before that field existed).</span>
-        <button class="icon-btn" id="guessColorsBtn">Guess from existing color text</button>
+        <span class="sub">Some items are missing a color family or texture (from before those fields existed).</span>
+        <button class="icon-btn" id="guessColorsBtn">Guess from item details</button>
       </div>
       <div class="upload-queue" id="uploadQueue"></div>
       <div id="closetEmpty" class="empty hide">
@@ -221,6 +224,7 @@
 /* ---------- Constants ---------- */
 const CATEGORIES = ["top","bottom","dress","layer","shoes","accessory"];
 const CATEGORY_LABELS = { top: "Top", bottom: "Bottom", dress: "Dress", layer: "Layer", shoes: "Shoes", accessory: "Accessory" };
+const CLOSET_ORDER = ["top", "layer", "dress", "bottom", "shoes", "accessory"];
 const FORMALITY_ORDER = ["casual", "business_casual", "business", "formal"];
 const FORMALITY_LABELS = { casual: "Casual", business_casual: "Business casual", business: "Business", formal: "Formal" };
 const COLOR_FAMILIES = ["black","white","gray","beige","brown","navy","red","orange","yellow","green","blue","purple","pink"];
@@ -265,6 +269,25 @@ function guessColorFamily(colorText) {
   }
   return "";
 }
+
+const TEXTURES = ["flowy", "structured", "either"];
+const TEXTURE_LABELS = { flowy: "Flowy", structured: "Structured", either: "Either / neutral" };
+// Free, offline backfill for items tagged before texture existed — guesses from
+// fabric/silhouette words in the item name. Structured cues are checked first so
+// "knit blazer" reads structured; everything unmatched stays "either" (a wildcard
+// that pairs with anything under the balance rule).
+const TEXTURE_KEYWORD_MAP = [
+  [/\b(blazer|tailored|trouser|trousers|ponte|denim|structured|suit|poplin|oxford|twill|leather|crisp)\b/i, "structured"],
+  [/\b(satin|silk|chiffon|crepe|crepette|georgette|jersey|modal|drape|draped|cowl|flowy|slip|wrap|knit|sweater|cardigan|ribbed|cashmere|mohair)\b/i, "flowy"],
+];
+function guessTexture(name) {
+  if (!name) return "";
+  for (const [pattern, texture] of TEXTURE_KEYWORD_MAP) {
+    if (pattern.test(name)) return texture;
+  }
+  return "";
+}
+
 const WEATHER_CODES = {
   0: ["☀️","Clear"], 1: ["🌤️","Mostly clear"], 2: ["⛅","Partly cloudy"], 3: ["☁️","Overcast"],
   45: ["🌫️","Fog"], 48: ["🌫️","Fog"],
@@ -433,17 +456,8 @@ function humanizeFilename(filename) {
 }
 
 /* ---------- Closet rendering ---------- */
-function renderCloset() {
-  const items = loadItems();
-  const grid = document.getElementById("closetGrid");
-  const empty = document.getElementById("closetEmpty");
-  grid.innerHTML = "";
-  empty.classList.toggle("hide", items.length > 0);
-
-  items.forEach((item) => {
-    const card = document.createElement("div");
-    card.className = "item-card";
-    card.innerHTML = `
+function itemCardHTML(item) {
+  return `
       <img src="${item.thumb}" alt="${escapeHtml(item.name)}">
       <div class="item-body">
         <div class="item-del-row">
@@ -464,15 +478,46 @@ function renderCloset() {
           <select class="item-field" data-id="${item.id}" data-field="formality">
             ${FORMALITY_ORDER.map(f => `<option value="${f}" ${f===item.formality?"selected":""}>${FORMALITY_LABELS[f]}</option>`).join("")}
           </select>
-          <label class="patterned-toggle">
-            <input type="checkbox" class="item-field" data-id="${item.id}" data-field="patterned" ${item.patterned ? "checked" : ""}>
-            Patterned
-          </label>
+          <select class="item-field" data-id="${item.id}" data-field="texture">
+            <option value="">Texture&hellip;</option>
+            ${TEXTURES.map(t => `<option value="${t}" ${t===item.texture?"selected":""}>${TEXTURE_LABELS[t]}</option>`).join("")}
+          </select>
         </div>
+        <label class="patterned-toggle">
+          <input type="checkbox" class="item-field" data-id="${item.id}" data-field="patterned" ${item.patterned ? "checked" : ""}>
+          Patterned
+        </label>
         <input class="item-field" data-id="${item.id}" data-field="color" value="${escapeHtml(item.color)}" placeholder="Color (optional)">
       </div>
     `;
-    grid.appendChild(card);
+}
+
+function renderCloset() {
+  const items = loadItems();
+  const grid = document.getElementById("closetGrid");
+  const empty = document.getElementById("closetEmpty");
+  grid.innerHTML = "";
+  empty.classList.toggle("hide", items.length > 0);
+
+  // Auto-organize: group items by category and render each group under a header,
+  // in a consistent getting-dressed order. renderCloset() runs after every add /
+  // edit / delete, so the closet re-sorts itself whenever it changes.
+  const grouped = byCategory(items);
+  CLOSET_ORDER.forEach(cat => {
+    const groupItems = grouped[cat] || [];
+    if (!groupItems.length) return;
+
+    const header = document.createElement("div");
+    header.className = "closet-section-header";
+    header.textContent = `${CATEGORY_LABELS[cat]}s`;
+    grid.appendChild(header);
+
+    groupItems.forEach(item => {
+      const card = document.createElement("div");
+      card.className = "item-card";
+      card.innerHTML = itemCardHTML(item);
+      grid.appendChild(card);
+    });
   });
 
   grid.querySelectorAll(".item-del").forEach(btn => {
@@ -498,26 +543,35 @@ function renderCloset() {
   });
 
   const guessRow = document.getElementById("guessColorsRow");
-  guessRow.classList.toggle("hide", !items.some(i => !i.colorFamily && i.color));
+  const needsColor = items.some(i => !i.colorFamily && i.color);
+  const needsTexture = items.some(i => !i.texture && i.category !== "shoes" && i.category !== "accessory");
+  guessRow.classList.toggle("hide", !needsColor && !needsTexture);
 
   renderSuggestions();
 }
 
 document.getElementById("guessColorsBtn").addEventListener("click", () => {
   const items = loadItems();
-  let guessed = 0;
+  let colorGuessed = 0, textureGuessed = 0;
   items.forEach(item => {
     if (!item.colorFamily && item.color) {
       const family = guessColorFamily(item.color);
-      if (family) { item.colorFamily = family; guessed++; }
+      if (family) { item.colorFamily = family; colorGuessed++; }
+    }
+    if (!item.texture && item.category !== "shoes" && item.category !== "accessory") {
+      const texture = guessTexture(`${item.name} ${item.color}`);
+      if (texture) { item.texture = texture; textureGuessed++; }
     }
   });
   saveItems(items);
   renderCloset();
   renderWeek();
-  alert(guessed > 0
-    ? `Guessed a color family for ${guessed} item(s). Double-check them in the Color family dropdown and fix anything that looks wrong.`
-    : `Couldn't confidently guess a color family from the remaining items' color text — set them manually instead.`);
+  const parts = [];
+  if (colorGuessed) parts.push(`a color family for ${colorGuessed} item(s)`);
+  if (textureGuessed) parts.push(`a texture for ${textureGuessed} item(s)`);
+  alert(parts.length
+    ? `Guessed ${parts.join(" and ")}. Double-check them in each item's dropdowns and fix anything that looks off.`
+    : `Couldn't confidently guess from the remaining items' details — set them manually instead.`);
 });
 
 function escapeHtml(s) {
@@ -588,6 +642,7 @@ document.getElementById("file").addEventListener("change", async (e) => {
         color: tags.color || "",
         colorFamily: COLOR_FAMILIES.includes(tags.colorFamily) ? tags.colorFamily : "",
         patterned: !!tags.patterned,
+        texture: TEXTURES.includes(tags.texture) ? tags.texture : "either",
         formality: FORMALITY_ORDER.includes(tags.formality) ? tags.formality : "business_casual",
         thumb,
       });
@@ -776,10 +831,23 @@ function colorCompatibility(famA, famB) {
   return 0.55;                  // the more dissonant in-between combinations
 }
 
+/* ---------- Texture balance ----------
+   Classic fashion rule: balance one flowy piece against one structured piece
+   (a drapey blouse with tailored trousers), and avoid head-to-toe all-flowy or
+   all-structured, which reads shapeless or stiff. So opposite textures score
+   best, matching textures are penalized, and "either"/unset acts as a wildcard
+   that fits anything. */
+function textureCompatibility(a, b) {
+  if (!a || !b || a === "either" || b === "either") return 1.0; // wildcard / unknown
+  if (a !== b) return 1.0;  // flowy + structured — balanced, ideal
+  return 0.6;               // flowy+flowy or structured+structured — less ideal
+}
+
 function pairCompatibility(item, partner) {
   if (!partner) return 1;
   let score = colorCompatibility(item.colorFamily, partner.colorFamily);
   if (item.patterned && partner.patterned) score -= 0.35; // avoid stacking two busy patterns
+  score *= textureCompatibility(item.texture, partner.texture);
   return score;
 }
 

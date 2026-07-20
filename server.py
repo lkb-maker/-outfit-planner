@@ -180,12 +180,25 @@ TAG_TOOL = {
                 "type": "boolean",
                 "description": "True if the item has a visible pattern or print (stripes, plaid, floral, etc.); false if solid.",
             },
+            "texture": {
+                "type": "string",
+                "enum": ["flowy", "structured", "either"],
+                "description": (
+                    "The garment's silhouette/drape: "
+                    "'flowy' = soft, draped, loose or fluid (silk, satin, chiffon, crepe, jersey, soft knits, "
+                    "draped/cowl styles); "
+                    "'structured' = crisp, tailored or stiff, holds a defined shape (blazers, tailored trousers, "
+                    "denim, ponte, poplin/oxford shirting, leather); "
+                    "'either' = genuinely in between or shape-neutral (e.g. most shoes and accessories, or a "
+                    "medium-weight piece that reads either way)."
+                ),
+            },
             "formality": {
                 "type": "string",
                 "enum": ["casual", "business_casual", "business", "formal"],
             },
         },
-        "required": ["brand", "name", "category", "color", "colorFamily", "patterned", "formality"],
+        "required": ["brand", "name", "category", "color", "colorFamily", "patterned", "texture", "formality"],
         "additionalProperties": False,
     },
 }
@@ -252,8 +265,9 @@ def tag_item():
                         "type": "text",
                         "text": (
                             "This is a photo of one work-wardrobe clothing item. "
-                            "Check for a visible brand logo, woven label, or tag, and note whether it's "
-                            "solid or patterned. Identify the item and record its tags."
+                            "Check for a visible brand logo, woven label, or tag; note whether it's "
+                            "solid or patterned; and judge its texture/drape (flowy vs structured). "
+                            "Identify the item and record its tags."
                         ),
                     },
                 ],
