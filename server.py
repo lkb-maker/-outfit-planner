@@ -218,6 +218,11 @@ def index():
     return send_from_directory(WEB_DIR, "index.html")
 
 
+@app.route("/product-images/<path:filename>")
+def product_images(filename):
+    return send_from_directory(WEB_DIR / "product-images", filename)
+
+
 @app.route("/api/state", methods=["GET"])
 def get_state():
     with _state_lock:
