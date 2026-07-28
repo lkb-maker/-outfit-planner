@@ -129,6 +129,7 @@
   .item-field.brand:hover, .item-field.brand:focus { outline: none; }
   .listing-match { margin-top: 3px; padding: 9px 10px; border: 1px solid var(--border);
     border-radius: 10px; background: var(--panel-2); font-size: 11px; line-height: 1.4; }
+  .listing-match.approved { border-color: #a9cbb5; background: #f1f8f3; }
   .listing-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .listing-badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 3px 7px;
     font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
@@ -139,6 +140,13 @@
   .listing-link:hover { text-decoration: underline; }
   .listing-title { margin-top: 6px; font-family: var(--font-serif); font-weight: 700; color: var(--text); }
   .listing-evidence { color: var(--muted); margin-top: 3px; }
+  .listing-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .listing-action { border: 1px solid var(--border); border-radius: 8px; background: var(--panel);
+    color: var(--text); padding: 6px 8px; font: 600 10px/1.2 var(--font-sans); cursor: pointer; }
+  .listing-action.primary { color: #fff; border-color: var(--accent); background: var(--accent); }
+  .listing-action:hover { filter: brightness(.97); }
+  .listing-options { display: flex; flex-direction: column; gap: 7px; margin-top: 7px; }
+  .listing-review-note { color: var(--muted); font-size: 10px; margin-top: 6px; }
   .field-row { display: flex; gap: 6px; }
   .field-row .item-field { flex: 1; min-width: 0; }
   .patterned-toggle { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted);
@@ -552,31 +560,114 @@ const LISTING_MATCHES = {
   }
 };
 
+// Additional defensible candidates are retained for review instead of being
+// silently discarded. They do not change the wardrobe image unless approved.
+const LISTING_ALTERNATIVES = {
+  "item_1784049803062_36cyd2": [
+    {
+      confidence: "likely", title: "Perfect Pump 85 — Taupe Suede",
+      source: "Sarah Flint", url: "https://www.sarahflint.com/products/perfect-pump-85-taupe-suede",
+      evidence: "Pointed toe and taupe suede agree; heel height is not visible clearly enough in the uploaded photo."
+    },
+    {
+      confidence: "likely", title: "Perfect Pump 100 — Taupe Suede",
+      source: "Sarah Flint", url: "https://www.sarahflint.com/products/perfect-pump-100-taupe-suede",
+      evidence: "Same pointed-toe pump family and material; could only be confirmed by comparing the 100mm heel."
+    },
+    {
+      confidence: "likely", title: "Perfect Emma — Taupe Suede",
+      source: "Sarah Flint", url: "https://www.sarahflint.com/products/perfect-emma-taupe-suede",
+      evidence: "Taupe suede and pointed toe agree, but the Emma has a distinctive block heel that must be checked."
+    }
+  ],
+  "item_1784051088007_oawldc": [
+    {
+      confidence: "likely", title: "Perfect Pump 85 — Black Suede",
+      source: "Sarah Flint", url: "https://www.sarahflint.com/products/perfect-pump-85-black-suede",
+      evidence: "Black suede and pointed-toe construction agree; compare heel height to confirm."
+    },
+    {
+      confidence: "likely", title: "Perfect Pump 100 — Black Suede",
+      source: "Sarah Flint", url: "https://www.sarahflint.com/products/perfect-pump-100-black-suede",
+      evidence: "Black suede and pointed-toe construction agree; this option has the taller 100mm heel."
+    }
+  ],
+  "item_1784051500257_6kmdwr": [
+    {
+      confidence: "likely", title: "The Effortless Pant™ Cropped — Crepette",
+      styleNumber: "81705", source: "Aritzia",
+      url: "https://www.aritzia.com/us/en/product/the-effortless-pant%E2%84%A2-cropped/81705.html",
+      evidence: "Same pleated Crepette construction with a shorter inseam; use the care label or worn length to distinguish it."
+    }
+  ],
+  "item_1784063648163_w89uyx": [
+    {
+      confidence: "likely", title: "The Effortless Pant™ Cropped — Crepette",
+      styleNumber: "81705", source: "Aritzia",
+      url: "https://www.aritzia.com/us/en/product/the-effortless-pant%E2%84%A2-cropped/81705.html",
+      evidence: "Same pleated Crepette construction with a shorter inseam; use the care label or worn length to distinguish it."
+    }
+  ],
+  "item_1784051527079_4yecz4": [
+    {
+      confidence: "likely", title: "Classic Mini Skirt — Crepette",
+      styleNumber: "100587", source: "Aritzia",
+      url: "https://www.aritzia.com/intl/en/product/classic-mini-skirt/100587.html?color=1274",
+      evidence: "Black Crepette and clean tailored mini silhouette are plausible; waistband and back closure need comparison."
+    },
+    {
+      confidence: "likely", title: "Devotion Skirt — Crepette",
+      styleNumber: "122968", source: "Aritzia",
+      url: "https://www.aritzia.com/us/en/product/devotion-skirt/122968037.html?color=1274",
+      evidence: "Black Crepette fabric agrees, but the drape and seam placement must be checked against an unfolded photo."
+    }
+  ]
+};
+
+function listingCandidates(item) {
+  const primary = LISTING_MATCHES[item.id] ? [LISTING_MATCHES[item.id]] : [];
+  return [...primary, ...(LISTING_ALTERNATIVES[item.id] || [])];
+}
+
 function listingMatchHTML(item) {
-  const match = LISTING_MATCHES[item.id];
-  if (!match) {
+  const candidates = listingCandidates(item);
+  if (!candidates.length) {
     return `<div class="listing-match">
       <div class="listing-head"><span class="listing-badge research">Researching</span></div>
       <div class="listing-evidence">No defensible original listing yet. Add a clear photo of the care label or style number to improve the search.</div>
     </div>`;
   }
-  const label = match.confidence === "exact" ? "Exact match" : "Likely match";
-  const style = match.styleNumber ? ` · Style ${escapeHtml(match.styleNumber)}` : "";
-  const link = match.url
-    ? `<a class="listing-link" href="${match.url}" target="_blank" rel="noopener noreferrer">View original ↗</a>`
-    : "";
-  return `<div class="listing-match">
-    <div class="listing-head"><span class="listing-badge ${match.confidence}">${label}</span>${link}</div>
-    <div class="listing-title">${escapeHtml(match.title)}</div>
-    <div class="listing-evidence">${escapeHtml(match.source)}${style}<br>${escapeHtml(match.evidence)}</div>
-  </div>`;
+  const options = candidates.map((match, index) => {
+    const candidateId = `${item.id}:${index}`;
+    const approved = item.approvedListingId === candidateId;
+    const label = match.confidence === "exact" ? "Exact match" : "Likely match";
+    const style = match.styleNumber ? ` · Style ${escapeHtml(match.styleNumber)}` : "";
+    const link = match.url
+      ? `<a class="listing-link" href="${match.url}" target="_blank" rel="noopener noreferrer">View listing ↗</a>`
+      : "";
+    const approveLabel = approved ? "Approved" : match.productImage ? "Approve & use store image" : "Approve match";
+    return `<div class="listing-match ${approved ? "approved" : ""}">
+      <div class="listing-head"><span class="listing-badge ${match.confidence}">${label}</span>${link}</div>
+      <div class="listing-title">${escapeHtml(match.title)}</div>
+      <div class="listing-evidence">${escapeHtml(match.source)}${style}<br>${escapeHtml(match.evidence)}</div>
+      <div class="listing-actions">
+        <button class="listing-action ${approved ? "" : "primary"} approve-listing"
+          data-id="${item.id}" data-candidate="${candidateId}" ${approved ? "disabled" : ""}>${approveLabel}</button>
+        ${approved ? `<button class="listing-action restore-photo" data-id="${item.id}">Restore my photo</button>` : ""}
+      </div>
+    </div>`;
+  }).join("");
+  return `<div class="listing-options">${options}</div>
+    <div class="listing-review-note">${candidates.length} candidate${candidates.length === 1 ? "" : "s"} found. Nothing replaces your photo until you approve it.</div>`;
 }
 
 function itemCardHTML(item) {
-  const listing = LISTING_MATCHES[item.id];
-  const displayImage = listing?.confidence === "exact" && listing.productImage
-    ? listing.productImage
-    : item.thumb;
+  const candidates = listingCandidates(item);
+  const approvedIndex = item.approvedListingId
+    ? Number(item.approvedListingId.split(":").pop())
+    : -1;
+  const approvedListing = approvedIndex >= 0 ? candidates[approvedIndex] : null;
+  const displayImage = approvedListing?.productImage || item.thumb;
   return `
       <img src="${displayImage}" alt="${escapeHtml(item.name)}">
       <div class="item-body">
@@ -660,6 +751,28 @@ function renderCloset() {
       saveItems(items);
       renderWeek();
       renderSuggestions();
+    });
+  });
+  grid.querySelectorAll(".approve-listing").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const items = loadItems();
+      const item = items.find(i => i.id === btn.dataset.id);
+      if (!item) return;
+      item.approvedListingId = btn.dataset.candidate;
+      saveItems(items);
+      renderCloset();
+      renderWeek();
+    });
+  });
+  grid.querySelectorAll(".restore-photo").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const items = loadItems();
+      const item = items.find(i => i.id === btn.dataset.id);
+      if (!item) return;
+      delete item.approvedListingId;
+      saveItems(items);
+      renderCloset();
+      renderWeek();
     });
   });
 
