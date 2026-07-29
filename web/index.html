@@ -504,7 +504,10 @@ const CONFIRMED_PRODUCT_IMAGES = {
   "item_1785243190673_vof2t4": "https://assets.aritzia.com/image/upload/c_crop%2Car_1920%3A2623%2Cg_south/q_auto%2Cf_auto%2Cdpr_auto/f25_a28_118757_10223_off_a",
   "item_1785243219725_gtn4r9": "https://assets.aritzia.com/image/upload/c_crop%2Car_1920%3A2623%2Cg_south/q_auto%2Cf_auto%2Cdpr_auto/f25_a28_118757_33925_off_a",
   "item_1785243235632_ilp2j4": "https://assets.aritzia.com/image/upload/c_crop%2Car_1920%3A2623%2Cg_south/q_auto%2Cf_auto%2Cdpr_auto/s26_a06_95189_30751_off_a",
-  "item_1785243292489_oeif8o": "https://assets.aritzia.com/image/upload/c_crop%2Car_1920%3A2623%2Cg_south/q_auto%2Cf_auto%2Cdpr_auto/s26_a06_95189_18891_off_a"
+  "item_1785243292489_oeif8o": "https://assets.aritzia.com/image/upload/c_crop%2Car_1920%3A2623%2Cg_south/q_auto%2Cf_auto%2Cdpr_auto/s26_a06_95189_18891_off_a",
+  "direct_20260729_quince_cowl_true_black": "/product-images/confirmed/quince-draped-matte-cowl-neck-tank-true-black.png",
+  "direct_20260729_quince_ribbed_tank_black": "/product-images/confirmed/quince-cotton-cashmere-ribbed-tank-black.png",
+  "direct_20260729_quince_bella_jeans_frosted_blue": "/product-images/confirmed/quince-bella-stretch-wide-leg-jeans-frosted-blue.png"
 };
 
 const CONFIRMED_PRODUCT_IMAGES_BY_NAME = {
@@ -1245,11 +1248,63 @@ function migrateLegacyLocalStorage() {
   persistState(partial);
 }
 
+/* ---------- Closet items approved directly in this project ---------- */
+const DIRECT_CLOSET_ITEMS = [
+  {
+    id: "direct_20260729_quince_cowl_true_black",
+    name: "Quince Draped Matte Cowl Neck Tank",
+    brand: "Quince",
+    category: "top",
+    color: "true black",
+    colorFamily: "black",
+    patterned: false,
+    texture: "flowy",
+    formality: "business_casual",
+    thumb: "/product-images/confirmed/quince-draped-matte-cowl-neck-tank-true-black.png",
+    productUrl: "https://www.quince.com/women/draped-matte-cowl-neck-tank?color=true-black&size=s"
+  },
+  {
+    id: "direct_20260729_quince_ribbed_tank_black",
+    name: "Quince Lightweight Cotton Cashmere Ribbed Tank",
+    brand: "Quince",
+    category: "top",
+    color: "black",
+    colorFamily: "black",
+    patterned: false,
+    texture: "either",
+    formality: "business_casual",
+    thumb: "/product-images/confirmed/quince-cotton-cashmere-ribbed-tank-black.png",
+    productUrl: "https://www.quince.com/women/lightweight-cotton-cashmere-ribbed-tank?color=black&size=xs"
+  },
+  {
+    id: "direct_20260729_quince_bella_jeans_frosted_blue",
+    name: "Quince Bella Stretch Wide Leg Jeans",
+    brand: "Quince",
+    category: "bottom",
+    color: "frosted blue",
+    colorFamily: "blue",
+    patterned: false,
+    texture: "structured",
+    formality: "casual",
+    thumb: "/product-images/confirmed/quince-bella-stretch-wide-leg-jeans-frosted-blue.png",
+    productUrl: "https://www.quince.com/women/bella-stretch-wide-leg-jeans--28?color=frosted-blue&size=27"
+  }
+];
+
+function importDirectClosetItems() {
+  const items = loadItems();
+  const existingIds = new Set(items.map(item => item.id));
+  const additions = DIRECT_CLOSET_ITEMS.filter(item => !existingIds.has(item.id));
+  if (!additions.length) return;
+  saveItems([...items, ...additions]);
+}
+
 /* ---------- Init ---------- */
 (async function init() {
   const authenticated = await fetchState();
   if (!authenticated) return; // auth gate is showing; page reloads after a successful login
   migrateLegacyLocalStorage();
+  importDirectClosetItems();
   renderCloset();
   await ensureWeatherLoaded();
   renderWeek();
