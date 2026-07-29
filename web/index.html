@@ -263,6 +263,10 @@ const MANNEQUIN_CORRECTED_COMBOS = {
   "item_1784049803062_36cyd2|item_1784051309093_eo70g1|item_1784063648163_w89uyx":
     "/mannequin/corrections/black-cowl-light-birch-taupe-pumps.png",
 };
+const MANNEQUIN_PAIR_CORRECTIONS = {
+  "item_1784051309093_eo70g1|item_1784063648163_w89uyx":
+    "/mannequin/corrections/black-cowl-light-birch-pair.png",
+};
 
 function mannequinComboKey(outfit) {
   return Object.values(outfit || {}).filter(Boolean).sort().join("|");
@@ -270,15 +274,22 @@ function mannequinComboKey(outfit) {
 
 function tryOnHTML(outfit, byId) {
   const corrected = MANNEQUIN_CORRECTED_COMBOS[mannequinComboKey(outfit)];
+  const pairKey = [outfit.top, outfit.bottom].filter(Boolean).sort().join("|");
+  const pairCorrection = MANNEQUIN_PAIR_CORRECTIONS[pairKey];
   const orderedIds = MANNEQUIN_LAYER_ORDER.map(cat => outfit[cat]).filter(Boolean);
   const available = orderedIds.filter(id => MANNEQUIN_ITEM_LAYERS[id]);
   const missing = orderedIds.filter(id => !MANNEQUIN_ITEM_LAYERS[id]).map(id => byId[id]?.name).filter(Boolean);
   const images = corrected
     ? `<img src="${corrected}" alt="Outfit on your mannequin">`
     : `<img src="${MANNEQUIN_BASE}" alt="Your mannequin">
-       ${available.map(id => `<img src="${MANNEQUIN_ITEM_LAYERS[id]}" alt="">`).join("")}`;
+       ${pairCorrection ? `<img src="${pairCorrection}" alt="">` : ""}
+       ${available
+         .filter(id => !pairCorrection || (id !== outfit.top && id !== outfit.bottom))
+         .map(id => `<img src="${MANNEQUIN_ITEM_LAYERS[id]}" alt="">`).join("")}`;
   const note = corrected
     ? "This combination uses a saved overlap-corrected version."
+    : pairCorrection
+      ? `${missing.length ? `Still preparing: ${missing.map(escapeHtml).join(", ")}.` : "Built instantly from reusable item layers."} The waist overlap uses a saved fit correction.`
     : missing.length
       ? `${available.length ? "Showing the prepared pieces." : "The mannequin is ready."} Still preparing: ${missing.map(escapeHtml).join(", ")}.`
       : "Built instantly from reusable item layers—no new image-generation fee.";
