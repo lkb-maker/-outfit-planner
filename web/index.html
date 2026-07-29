@@ -546,11 +546,11 @@ const LISTING_MATCHES = {
     evidence: "Cherry red, relaxed crewneck, button front and ribbed hem match; label confirmation would make this exact."
   },
   "item_1784063654851_xkxgnu": {
-    confidence: "likely", title: "Original Contour Crew T-Shirt — White",
+    confidence: "exact", title: "Original Contour Marvel Crew T-Shirt — White",
     styleNumber: "128950", source: "Aritzia",
     productImage: "/product-images/aritzia-contour-white.avif",
-    url: "https://www.aritzia.com/en/product/original-contour-crew-t-shirt/128950.html",
-    evidence: "Opaque white Contour fabric, fitted crew neck and full-length silhouette agree; style number needs checking."
+    url: "https://www.aritzia.com/us/en/product/original-contour-marvel-crew-t-shirt/128950017.html?color=1274",
+    evidence: "The user confirmed the Original Contour Marvel Crew T-Shirt and style 128950."
   },
   "item_1784053794490_c69zva": {
     confidence: "likely", title: "Long-Sleeve Knit Top — Cream", source: "Sunspel",
@@ -628,9 +628,56 @@ const LISTING_ALTERNATIVES = {
   ]
 };
 
+// Product photos explicitly confirmed by the user. These are stable app assets,
+// so the same image appears in the Closet, weekly outfits and shopping guidance.
+const CONFIRMED_PRODUCT_IMAGES = {
+  "item_1784049803062_36cyd2": "/product-images/confirmed/taupe-suede-block-heel-pump.png",
+  "item_1784051008716_xgw1vm": "/product-images/confirmed/veja-volley-white-red-gum-sneakers.png",
+  "item_1784051025610_q675yu": "/product-images/confirmed/black-leather-horsebit-loafer-mules.png",
+  "item_1784051041483_0k5bgv": "/product-images/confirmed/cream-suede-round-toe-block-heel-pump.png",
+  "item_1784051058997_jff7ha": "/product-images/confirmed/black-patent-mary-jane-stiletto-pump.png",
+  "item_1784051088007_oawldc": "/product-images/confirmed/black-suede-pump-tortoiseshell-block-heel.png",
+  "item_1784051119519_fgly65": "/product-images/confirmed/adidas-handball-spezial-brown-cream-gum.png",
+  "item_1784051141529_57iq0o": "/product-images/confirmed/adidas-gazelle-bold-coral-lavender-red-laces.png",
+  "item_1784051356988_22tjl2": "/product-images/confirmed/babaton-nominee-satin-blouse-cobalt.png",
+  "item_1784051448857_opo7xg": "/product-images/confirmed/wilfred-regal-vest-white.png",
+  "item_1784051471807_s6k66d": "/product-images/confirmed/babaton-slip-satin-maxi-skirt-30654.png",
+  "item_1784051500257_6kmdwr": "/product-images/confirmed/aritzia-effortless-pant-marcona-beige.png",
+  "item_1784051527079_4yecz4": "/product-images/confirmed/aritzia-devotion-skirt-black.png",
+  "item_1784051632169_16ohjt": "/product-images/confirmed/wilfred-discontinued-black-crepe-trousers.png",
+  "item_1784051663053_x6q470": "/product-images/confirmed/babaton-notable-cardigan-black.png",
+  "item_1784051688270_7tbkn0": "/product-images/confirmed/maxmara-studio-black-ivory-trim-cardigan.png",
+  "item_1784051704153_g65a3e": "/product-images/confirmed/maje-short-sleeve-cardigan-white-mfpca00485.png",
+  "item_1784053590081_85348e": "/product-images/confirmed/sandro-monaco-cardigan-ecru-black.png",
+  "item_1784053601245_wo6eg8": "/product-images/confirmed/sandro-ribbed-cardigan-pink-sfpca01000.png",
+  "item_1784053632684_jnfw6v": "/product-images/confirmed/babaton-navy-tweed-cropped-blazer-gold-buttons.png",
+  "item_1784053673797_my4op0": "/product-images/confirmed/theory-lynnia-blazer-good-wool-camel.png",
+  "item_1784053683937_jsk5r8": "/product-images/confirmed/babaton-black-open-front-ruched-sleeve-blazer.png",
+  "item_1784053755444_9donii": "/product-images/confirmed/alex-mill-button-front-sweater-vest-red.png",
+  "item_1784053777436_rygh05": "/product-images/confirmed/light-blue-open-knit-sweater-vest.png",
+  "item_1784053794490_c69zva": "/product-images/confirmed/sunspel-ivory-boat-neck-long-sleeve-knit-top.png",
+  "item_1784053830134_vzj95n": "/product-images/confirmed/reformation-clara-cardigan-dusty-rosewood.png",
+  "item_1784063648163_w89uyx": "/product-images/confirmed/aritzia-effortless-pant-crepette-light-birch-77775.png",
+  "item_1784063651754_o43452": "https://assets.aritzia.com/image/upload/c_crop%2Car_1920%3A2623%2Cg_south/q_auto%2Cf_auto%2Cdpr_auto/s26_a01_128950_1274_off_a",
+  "item_1784063654851_xkxgnu": "/product-images/aritzia-contour-white.avif",
+  "item_1784063658408_gq435d": "/product-images/confirmed/sunspel-ivory-sleeveless-mock-neck-knit-top.png"
+};
+
 function listingCandidates(item) {
   const primary = LISTING_MATCHES[item.id] ? [LISTING_MATCHES[item.id]] : [];
   return [...primary, ...(LISTING_ALTERNATIVES[item.id] || [])];
+}
+
+function itemDisplayImage(item) {
+  const confirmedImage = CONFIRMED_PRODUCT_IMAGES[item.id];
+  if (confirmedImage) return confirmedImage;
+  const candidates = listingCandidates(item);
+  const approvedIndex = item.approvedListingId
+    ? Number(item.approvedListingId.split(":").pop())
+    : -1;
+  return approvedIndex >= 0 && candidates[approvedIndex]?.productImage
+    ? candidates[approvedIndex].productImage
+    : item.thumb;
 }
 
 function listingMatchHTML(item) {
@@ -666,12 +713,7 @@ function listingMatchHTML(item) {
 }
 
 function itemCardHTML(item) {
-  const candidates = listingCandidates(item);
-  const approvedIndex = item.approvedListingId
-    ? Number(item.approvedListingId.split(":").pop())
-    : -1;
-  const approvedListing = approvedIndex >= 0 ? candidates[approvedIndex] : null;
-  const displayImage = approvedListing?.productImage || item.thumb;
+  const displayImage = itemDisplayImage(item);
   return `
       <img src="${displayImage}" alt="${escapeHtml(item.name)}">
       <div class="item-body">
@@ -1226,7 +1268,7 @@ function renderSuggestions() {
     const swatch = `<span class="suggestion-swatch" style="background:${COLOR_FAMILY_SWATCH[s.color]}"></span>`;
     let thumb, text;
     if (s.type === "companion") {
-      thumb = `<img src="${s.item.thumb}" alt="${escapeHtml(s.item.name)}">`;
+      thumb = `<img src="${itemDisplayImage(s.item)}" alt="${escapeHtml(s.item.name)}">`;
       text = `A ${swatch}<b>${SHADE_HINT[s.color]}</b> ${escapeHtml(CATEGORY_LABELS[s.targetCat].toLowerCase())} would pair with your <b>${escapeHtml(s.item.name)}</b> — all your ${escapeHtml(pluralCat(s.targetCat))} are neutral right now, so a colorful one gives you a standout outfit.`;
     } else {
       thumb = `<div class="suggestion-swatch-lg" style="background:${COLOR_FAMILY_SWATCH[s.color]}"></div>`;
@@ -1365,7 +1407,7 @@ function renderWeek() {
       <div class="outfit-pieces">
         ${pieces.length ? pieces.map(p => `
           <div class="piece">
-            <img src="${p.thumb}" alt="${escapeHtml(p.name)}">
+            <img src="${itemDisplayImage(p)}" alt="${escapeHtml(p.name)}">
             <div class="piece-info">
               <span class="piece-name">${escapeHtml(p.name)}</span>
               <span class="piece-cat">${CATEGORY_LABELS[p.category] || p.category}</span>
