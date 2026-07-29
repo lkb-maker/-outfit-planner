@@ -498,8 +498,14 @@ const CONFIRMED_PRODUCT_IMAGES = {
   "item_1785243292489_oeif8o": "https://assets.aritzia.com/image/upload/c_crop%2Car_1920%3A2623%2Cg_south/q_auto%2Cf_auto%2Cdpr_auto/s26_a06_95189_18891_off_a"
 };
 
+const CONFIRMED_PRODUCT_IMAGES_BY_NAME = {
+  "Babaton Cowl Neck Sleeveless Top": "/product-images/confirmed/babaton-chocolate-brown-cowl-neck-sleeveless-bodysuit.png"
+};
+
 function itemDisplayImage(item) {
-  return CONFIRMED_PRODUCT_IMAGES[item.id] || item.thumb;
+  return CONFIRMED_PRODUCT_IMAGES[item.id]
+    || CONFIRMED_PRODUCT_IMAGES_BY_NAME[item.name]
+    || item.thumb;
 }
 
 function itemCardHTML(item) {
