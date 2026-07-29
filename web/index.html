@@ -9,6 +9,7 @@
     --bg: #f7f3ec;
     --panel: #ffffff;
     --panel-2: #f1ebe0;
+    --photo-bg: #ededed;
     --border: #e3d9c9;
     --text: #2a241f;
     --muted: #7a7062;
@@ -100,7 +101,7 @@
   .outfit-pieces { display: flex; flex-wrap: wrap; gap: 10px; }
   .piece { display: flex; align-items: center; gap: 10px; background: var(--panel-2); border: 1px solid var(--border);
     border-radius: 12px; padding: 8px 14px 8px 8px; }
-  .piece img { width: 40px; height: 40px; object-fit: cover; border-radius: 8px; background: var(--border); }
+  .piece img { width: 40px; height: 40px; object-fit: contain; border-radius: 8px; background: var(--photo-bg); }
   .piece-info { display: flex; flex-direction: column; }
   .piece-name { font-size: 12.5px; font-weight: 600; }
   .piece-cat { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 1px; }
@@ -114,7 +115,7 @@
   .item-card { position: relative; background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
     overflow: hidden; box-shadow: var(--shadow-sm); transition: box-shadow .15s ease; }
   .item-card:hover { box-shadow: var(--shadow); }
-  .item-card img { width: 100%; height: 150px; object-fit: cover; display: block; background: var(--panel-2); }
+  .item-card img { width: 100%; height: 150px; object-fit: contain; display: block; background: var(--photo-bg); }
   .item-body { padding: 12px 12px 14px; display: flex; flex-direction: column; gap: 6px; }
   .item-del-row { position: absolute; top: 8px; right: 8px; z-index: 2; }
   .item-del { background: rgba(42,36,31,.55); color: #fff; border: none; border-radius: 50%;
@@ -135,7 +136,7 @@
   .suggestions-list { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
   .suggestion-card { display: flex; align-items: center; gap: 12px; background: var(--panel-2);
     border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; }
-  .suggestion-card img { width: 44px; height: 44px; object-fit: cover; border-radius: 8px; flex-shrink: 0; background: var(--border); }
+  .suggestion-card img { width: 44px; height: 44px; object-fit: contain; border-radius: 8px; flex-shrink: 0; background: var(--photo-bg); }
   .suggestion-text { flex: 1; font-size: 12.5px; line-height: 1.5; }
   .suggestion-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0 1px -1px;
     border: 1px solid rgba(42,36,31,.15); }
