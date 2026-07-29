@@ -106,6 +106,23 @@
   .piece-name { font-size: 12.5px; font-weight: 600; }
   .piece-cat { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 1px; }
   .day-rest { font-family: var(--font-serif); font-style: italic; color: var(--muted); font-size: 13.5px; line-height: 1.5; }
+  .try-on-row { display: flex; justify-content: flex-end; margin-top: 12px; }
+  .try-on-btn { border: 1px solid var(--accent); background: var(--accent-tint); color: var(--accent-ink);
+    border-radius: 999px; padding: 7px 13px; font: 600 12px var(--font-sans); cursor: pointer; }
+  .try-on-btn:hover { background: var(--accent); color: #fff; }
+  .try-on-view { display: grid; grid-template-columns: minmax(180px, 280px) 1fr; gap: 18px;
+    align-items: center; margin-top: 14px; padding: 14px; border-radius: 14px; background: var(--panel-2);
+    border: 1px solid var(--border); }
+  .try-on-stage { position: relative; width: 100%; aspect-ratio: 2 / 3; overflow: hidden;
+    border-radius: 12px; background: #eeece9; }
+  .try-on-stage img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+  .try-on-copy { color: var(--muted); font-size: 12.5px; line-height: 1.55; }
+  .try-on-copy strong { display: block; color: var(--text); font-family: var(--font-serif);
+    font-size: 16px; margin-bottom: 5px; }
+  @media (max-width: 620px) {
+    .try-on-view { grid-template-columns: 1fr; }
+    .try-on-stage { max-width: 280px; margin: 0 auto; }
+  }
 
   /* Closet */
   .closet-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 16px; margin-top: 16px; }
@@ -232,6 +249,42 @@ const COLOR_FAMILY_SWATCH = {
 };
 const TEXTURES = ["flowy", "structured", "either"];
 const TEXTURE_LABELS = { flowy: "Flowy", structured: "Structured", either: "Either / neutral" };
+
+/* Every prepared piece uses the same mannequin, pose and canvas. The browser
+   stacks these files instantly, so opening a try-on does not call an image API. */
+const MANNEQUIN_BASE = "/mannequin/laura-faceless-white-candidate.png";
+const MANNEQUIN_ITEM_LAYERS = {
+  "item_1784051309093_eo70g1": "/mannequin/layers/item_1784051309093_eo70g1.png",
+  "item_1784063648163_w89uyx": "/mannequin/layers/item_1784063648163_w89uyx.png",
+  "item_1784049803062_36cyd2": "/mannequin/layers/item_1784049803062_36cyd2.png",
+};
+const MANNEQUIN_LAYER_ORDER = ["top", "bottom", "dress", "layer", "shoes", "accessory"];
+const MANNEQUIN_CORRECTED_COMBOS = {
+  "item_1784049803062_36cyd2|item_1784051309093_eo70g1|item_1784063648163_w89uyx":
+    "/mannequin/corrections/black-cowl-light-birch-taupe-pumps.png",
+};
+
+function mannequinComboKey(outfit) {
+  return Object.values(outfit || {}).filter(Boolean).sort().join("|");
+}
+
+function tryOnHTML(outfit, byId) {
+  const corrected = MANNEQUIN_CORRECTED_COMBOS[mannequinComboKey(outfit)];
+  const orderedIds = MANNEQUIN_LAYER_ORDER.map(cat => outfit[cat]).filter(Boolean);
+  const available = orderedIds.filter(id => MANNEQUIN_ITEM_LAYERS[id]);
+  const missing = orderedIds.filter(id => !MANNEQUIN_ITEM_LAYERS[id]).map(id => byId[id]?.name).filter(Boolean);
+  const images = corrected
+    ? `<img src="${corrected}" alt="Outfit on your mannequin">`
+    : `<img src="${MANNEQUIN_BASE}" alt="Your mannequin">
+       ${available.map(id => `<img src="${MANNEQUIN_ITEM_LAYERS[id]}" alt="">`).join("")}`;
+  const note = corrected
+    ? "This combination uses a saved overlap-corrected version."
+    : missing.length
+      ? `${available.length ? "Showing the prepared pieces." : "The mannequin is ready."} Still preparing: ${missing.map(escapeHtml).join(", ")}.`
+      : "Built instantly from reusable item layers—no new image-generation fee.";
+  return `<div class="try-on-view"><div class="try-on-stage">${images}</div>
+    <div class="try-on-copy"><strong>Your proportions, styled</strong>${note}</div></div>`;
+}
 
 const WEATHER_CODES = {
   0: ["☀️","Clear"], 1: ["🌤️","Mostly clear"], 2: ["⛅","Partly cloudy"], 3: ["☁️","Overcast"],
@@ -1103,12 +1156,23 @@ function renderWeek() {
           </div>
         `).join("") : `<div class="day-rest">Some pieces were removed from your closet &mdash; shuffle to rebuild this outfit.</div>`}
       </div>
+      <div class="try-on-row"><button class="try-on-btn" data-try-on="${iso}">Show this on me</button></div>
+      <div class="try-on-slot" data-try-on-slot="${iso}"></div>
     `;
     grid.appendChild(card);
   });
 
   grid.querySelectorAll("[data-day]").forEach(btn => {
     btn.addEventListener("click", () => regenerateDay(btn.dataset.day));
+  });
+  grid.querySelectorAll("[data-try-on]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const iso = btn.dataset.tryOn;
+      const slot = grid.querySelector(`[data-try-on-slot="${iso}"]`);
+      const isOpen = slot.innerHTML.trim() !== "";
+      slot.innerHTML = isOpen ? "" : tryOnHTML((week.days && week.days[iso]) || {}, byId);
+      btn.textContent = isOpen ? "Show this on me" : "Hide mannequin";
+    });
   });
   grid.querySelectorAll(".event-field").forEach(inp => {
     inp.addEventListener("input", () => {

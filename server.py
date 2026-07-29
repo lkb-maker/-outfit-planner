@@ -223,6 +223,11 @@ def product_images(filename):
     return send_from_directory(WEB_DIR / "product-images", filename)
 
 
+@app.route("/mannequin/<path:filename>")
+def mannequin_assets(filename):
+    return send_from_directory(WEB_DIR / "mannequin", filename)
+
+
 @app.route("/api/state", methods=["GET"])
 def get_state():
     with _state_lock:
