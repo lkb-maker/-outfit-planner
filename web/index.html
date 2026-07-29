@@ -201,10 +201,6 @@
         </label>
       </div>
       <div class="sub" style="margin-top: 8px;">Upload photos of your clothes. Claude tags each one automatically &mdash; name, category, color, texture, formality &mdash; and you can fix anything it gets wrong.</div>
-      <div class="row hide" id="guessColorsRow" style="margin-top: 10px;">
-        <span class="sub">Some items are missing a color family or texture (from before those fields existed).</span>
-        <button class="icon-btn" id="guessColorsBtn">Guess from item details</button>
-      </div>
       <div class="upload-queue" id="uploadQueue"></div>
       <div id="closetEmpty" class="empty hide">
         <div class="empty-title">Your closet is empty</div>
@@ -234,60 +230,8 @@ const COLOR_FAMILY_SWATCH = {
   black: "#2a241f", white: "#faf8f4", gray: "#9a938a", beige: "#d8c7a9", brown: "#7a5230", navy: "#233350",
   red: "#b03a3a", orange: "#c1682f", yellow: "#d8b23a", green: "#5f7a4a", blue: "#3f6fa8", purple: "#7a5a9e", pink: "#c98caa",
 };
-// Free, offline backfill for items tagged before colorFamily existed — guesses a
-// bucket from the existing free-text color description. Order matters: more
-// specific phrases are checked before their broader parent color.
-const COLOR_KEYWORD_MAP = [
-  [/\b(cream|ivory|off[- ]?white|eggshell)\b/i, "white"],
-  [/\bwhite\b/i, "white"],
-  [/\b(charcoal|slate|silver|heather)\b/i, "gray"],
-  [/\b(gray|grey)\b/i, "gray"],
-  [/\b(taupe|tan|khaki|camel|sand|nude|stone)\b/i, "beige"],
-  [/\bbeige\b/i, "beige"],
-  [/\b(chocolate|espresso|cognac|caramel|coffee|chestnut)\b/i, "brown"],
-  [/\bbrown\b/i, "brown"],
-  [/\bnavy\b/i, "navy"],
-  [/\bblack\b/i, "black"],
-  [/\b(burgundy|maroon|wine|crimson)\b/i, "red"],
-  [/\bred\b/i, "red"],
-  [/\b(rust|terracotta|burnt orange|amber)\b/i, "orange"],
-  [/\borange\b/i, "orange"],
-  [/\b(mustard|gold|golden)\b/i, "yellow"],
-  [/\byellow\b/i, "yellow"],
-  [/\b(olive|sage|forest|emerald|mint)\b/i, "green"],
-  [/\bgreen\b/i, "green"],
-  [/\b(teal|denim|cobalt|royal blue|sky blue)\b/i, "blue"],
-  [/\bblue\b/i, "blue"],
-  [/\b(lavender|violet|plum|mauve|lilac)\b/i, "purple"],
-  [/\bpurple\b/i, "purple"],
-  [/\b(blush|rose|fuchsia|magenta)\b/i, "pink"],
-  [/\bpink\b/i, "pink"],
-];
-function guessColorFamily(colorText) {
-  if (!colorText) return "";
-  for (const [pattern, family] of COLOR_KEYWORD_MAP) {
-    if (pattern.test(colorText)) return family;
-  }
-  return "";
-}
-
 const TEXTURES = ["flowy", "structured", "either"];
 const TEXTURE_LABELS = { flowy: "Flowy", structured: "Structured", either: "Either / neutral" };
-// Free, offline backfill for items tagged before texture existed — guesses from
-// fabric/silhouette words in the item name. Structured cues are checked first so
-// "knit blazer" reads structured; everything unmatched stays "either" (a wildcard
-// that pairs with anything under the balance rule).
-const TEXTURE_KEYWORD_MAP = [
-  [/\b(blazer|tailored|trouser|trousers|ponte|denim|structured|suit|poplin|oxford|twill|leather|crisp)\b/i, "structured"],
-  [/\b(satin|silk|chiffon|crepe|crepette|georgette|jersey|modal|drape|draped|cowl|flowy|slip|wrap|knit|sweater|cardigan|ribbed|cashmere|mohair)\b/i, "flowy"],
-];
-function guessTexture(name) {
-  if (!name) return "";
-  for (const [pattern, texture] of TEXTURE_KEYWORD_MAP) {
-    if (pattern.test(name)) return texture;
-  }
-  return "";
-}
 
 const WEATHER_CODES = {
   0: ["☀️","Clear"], 1: ["🌤️","Mostly clear"], 2: ["⛅","Partly cloudy"], 3: ["☁️","Overcast"],
@@ -595,37 +539,8 @@ function renderCloset() {
       renderSuggestions();
     });
   });
-  const guessRow = document.getElementById("guessColorsRow");
-  const needsColor = items.some(i => !i.colorFamily && i.color);
-  const needsTexture = items.some(i => !i.texture && i.category !== "shoes" && i.category !== "accessory");
-  guessRow.classList.toggle("hide", !needsColor && !needsTexture);
-
   renderSuggestions();
 }
-
-document.getElementById("guessColorsBtn").addEventListener("click", () => {
-  const items = loadItems();
-  let colorGuessed = 0, textureGuessed = 0;
-  items.forEach(item => {
-    if (!item.colorFamily && item.color) {
-      const family = guessColorFamily(item.color);
-      if (family) { item.colorFamily = family; colorGuessed++; }
-    }
-    if (!item.texture && item.category !== "shoes" && item.category !== "accessory") {
-      const texture = guessTexture(`${item.name} ${item.color}`);
-      if (texture) { item.texture = texture; textureGuessed++; }
-    }
-  });
-  saveItems(items);
-  renderCloset();
-  renderWeek();
-  const parts = [];
-  if (colorGuessed) parts.push(`a color family for ${colorGuessed} item(s)`);
-  if (textureGuessed) parts.push(`a texture for ${textureGuessed} item(s)`);
-  alert(parts.length
-    ? `Guessed ${parts.join(" and ")}. Double-check them in each item's dropdowns and fix anything that looks off.`
-    : `Couldn't confidently guess from the remaining items' details — set them manually instead.`);
-});
 
 function escapeHtml(s) {
   const d = document.createElement("div");
