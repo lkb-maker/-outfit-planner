@@ -507,7 +507,7 @@ const CONFIRMED_PRODUCT_IMAGES = {
   "item_1785243292489_oeif8o": "https://assets.aritzia.com/image/upload/c_crop%2Car_1920%3A2623%2Cg_south/q_auto%2Cf_auto%2Cdpr_auto/s26_a06_95189_18891_off_a",
   "direct_20260729_quince_cowl_true_black": "/product-images/confirmed/quince-draped-matte-cowl-neck-tank-true-black.png",
   "direct_20260729_quince_ribbed_tank_black": "/product-images/confirmed/quince-cotton-cashmere-ribbed-tank-black.png",
-  "direct_20260729_quince_bella_jeans_frosted_blue": "/product-images/confirmed/quince-bella-stretch-wide-leg-jeans-frosted-blue.png"
+  "direct_20260729_quince_bella_jeans_frosted_blue": "/product-images/confirmed/quince-bella-stretch-wide-leg-jeans-deep-sea-blue.png"
 };
 
 const CONFIRMED_PRODUCT_IMAGES_BY_NAME = {
@@ -1281,22 +1281,28 @@ const DIRECT_CLOSET_ITEMS = [
     name: "Quince Bella Stretch Wide Leg Jeans",
     brand: "Quince",
     category: "bottom",
-    color: "frosted blue",
+    color: "deep sea blue",
     colorFamily: "blue",
     patterned: false,
     texture: "structured",
     formality: "casual",
-    thumb: "/product-images/confirmed/quince-bella-stretch-wide-leg-jeans-frosted-blue.png",
-    productUrl: "https://www.quince.com/women/bella-stretch-wide-leg-jeans--28?color=frosted-blue&size=27"
+    thumb: "/product-images/confirmed/quince-bella-stretch-wide-leg-jeans-deep-sea-blue.png",
+    productUrl: "https://www.quince.com/women/bella-stretch-wide-leg-jeans--28?color=deep-sea-blue&size=27"
   }
 ];
 
 function importDirectClosetItems() {
   const items = loadItems();
+  const approvedById = new Map(DIRECT_CLOSET_ITEMS.map(item => [item.id, item]));
   const existingIds = new Set(items.map(item => item.id));
+  const refreshedItems = items.map(item => {
+    const approved = approvedById.get(item.id);
+    return approved ? { ...item, ...approved } : item;
+  });
   const additions = DIRECT_CLOSET_ITEMS.filter(item => !existingIds.has(item.id));
-  if (!additions.length) return;
-  saveItems([...items, ...additions]);
+  const nextItems = [...refreshedItems, ...additions];
+  if (JSON.stringify(nextItems) === JSON.stringify(items)) return;
+  saveItems(nextItems);
 }
 
 /* ---------- Init ---------- */
