@@ -157,7 +157,7 @@ TAG_TOOL = {
             },
             "category": {
                 "type": "string",
-                "enum": ["top", "bottom", "dress", "layer", "shoes", "accessory"],
+                "enum": ["top", "bottom", "dress", "layer", "shoes", "belt", "accessory"],
                 "description": "layer = jacket/blazer/cardigan worn over a top.",
             },
             "color": {

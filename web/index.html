@@ -236,9 +236,9 @@
 
 <script>
 /* ---------- Constants ---------- */
-const CATEGORIES = ["top","bottom","dress","layer","shoes","accessory"];
-const CATEGORY_LABELS = { top: "Top", bottom: "Bottom", dress: "Dress", layer: "Layer", shoes: "Shoes", accessory: "Accessory" };
-const CLOSET_ORDER = ["top", "layer", "dress", "bottom", "shoes", "accessory"];
+const CATEGORIES = ["top","bottom","dress","layer","shoes","belt","accessory"];
+const CATEGORY_LABELS = { top: "Top", bottom: "Bottom", dress: "Dress", layer: "Layer", shoes: "Shoes", belt: "Belt", accessory: "Accessory" };
+const CLOSET_ORDER = ["top", "layer", "dress", "bottom", "shoes", "belt", "accessory"];
 const FORMALITY_ORDER = ["casual", "business_casual", "business", "formal"];
 const FORMALITY_LABELS = { casual: "Casual", business_casual: "Business casual", business: "Business", formal: "Formal" };
 const COLOR_FAMILIES = ["black","white","gray","beige","brown","navy","red","orange","yellow","green","blue","purple","pink"];
@@ -298,8 +298,10 @@ const MANNEQUIN_ITEM_LAYERS = {
   "item_1785353955513_cfe2c1": "/mannequin/layers/item_1785243219725_gtn4r9.png",
   "item_1785243235632_ilp2j4": "/mannequin/layers/item_1785243235632_ilp2j4.png",
   "item_1785243292489_oeif8o": "/mannequin/layers/item_1785243292489_oeif8o.png",
+  "direct_20260729_brown_textured_gold_buckle_belt": "/mannequin/layers/direct_20260729_brown_textured_gold_buckle_belt.png",
+  "direct_20260729_celine_black_triomphe_belt": "/mannequin/layers/direct_20260729_celine_black_triomphe_belt.png",
 };
-const MANNEQUIN_LAYER_ORDER = ["top", "bottom", "dress", "layer", "shoes", "accessory"];
+const MANNEQUIN_LAYER_ORDER = ["top", "bottom", "dress", "belt", "layer", "shoes", "accessory"];
 const MANNEQUIN_TOPS_OVER_BOTTOMS = new Set([
   "item_1784051448857_opo7xg",
   "item_1784053755444_9donii",
@@ -323,7 +325,7 @@ function tryOnHTML(outfit, byId) {
   const pairKey = [outfit.top, outfit.bottom].filter(Boolean).sort().join("|");
   const pairCorrection = MANNEQUIN_PAIR_CORRECTIONS[pairKey];
   const orderedIds = MANNEQUIN_TOPS_OVER_BOTTOMS.has(outfit.top)
-    ? [outfit.bottom, outfit.dress, outfit.top, outfit.layer, outfit.shoes, outfit.accessory].filter(Boolean)
+    ? [outfit.bottom, outfit.dress, outfit.belt, outfit.top, outfit.layer, outfit.shoes, outfit.accessory].filter(Boolean)
     : MANNEQUIN_LAYER_ORDER.map(cat => outfit[cat]).filter(Boolean);
   const available = orderedIds.filter(id => MANNEQUIN_ITEM_LAYERS[id]);
   const missing = orderedIds.filter(id => !MANNEQUIN_ITEM_LAYERS[id]).map(id => byId[id]?.name).filter(Boolean);
@@ -556,7 +558,9 @@ const CONFIRMED_PRODUCT_IMAGES = {
   "item_1785243292489_oeif8o": "https://assets.aritzia.com/image/upload/c_crop%2Car_1920%3A2623%2Cg_south/q_auto%2Cf_auto%2Cdpr_auto/s26_a06_95189_18891_off_a",
   "direct_20260729_quince_cowl_true_black": "/product-images/confirmed/quince-draped-matte-cowl-neck-tank-true-black.png",
   "direct_20260729_quince_ribbed_tank_black": "/product-images/confirmed/quince-cotton-cashmere-ribbed-tank-black.png",
-  "direct_20260729_quince_bella_jeans_frosted_blue": "/product-images/confirmed/quince-bella-stretch-wide-leg-jeans-deep-sea-blue.png"
+  "direct_20260729_quince_bella_jeans_frosted_blue": "/product-images/confirmed/quince-bella-stretch-wide-leg-jeans-deep-sea-blue.png",
+  "direct_20260729_brown_textured_gold_buckle_belt": "/product-images/confirmed/brown-textured-gold-buckle-belt.png",
+  "direct_20260729_celine_black_triomphe_belt": "/product-images/confirmed/celine-black-triomphe-belt.png"
 };
 
 const CONFIRMED_PRODUCT_IMAGES_BY_NAME = {
@@ -975,6 +979,9 @@ function buildOutfit(grouped, target, usedCounts, iso) {
   if (grouped.layer.length && Math.random() < layerProbabilityFor(iso)) {
     outfit.layer = pickCoordinatedItem(grouped.layer, target, usedCounts, base);
   }
+  if (grouped.belt.length && Math.random() < 0.4) {
+    outfit.belt = pickCoordinatedItem(grouped.belt, target, usedCounts, outfit.bottom || outfit.dress || base);
+  }
   if (grouped.accessory.length && Math.random() < 0.4) outfit.accessory = pickItem(grouped.accessory, target, usedCounts);
   return Object.fromEntries(Object.entries(outfit).filter(([, v]) => v).map(([k, v]) => [k, v.id]));
 }
@@ -1183,7 +1190,7 @@ function renderWeek() {
     }
 
     const outfit = (week.days && week.days[iso]) || {};
-    const pieceOrder = ["dress", "top", "bottom", "layer", "shoes", "accessory"];
+    const pieceOrder = ["dress", "top", "bottom", "belt", "layer", "shoes", "accessory"];
     const pieces = pieceOrder
       .map(cat => outfit[cat] ? byId[outfit[cat]] : null)
       .filter(Boolean);
@@ -1337,6 +1344,32 @@ const DIRECT_CLOSET_ITEMS = [
     formality: "casual",
     thumb: "/product-images/confirmed/quince-bella-stretch-wide-leg-jeans-deep-sea-blue.png",
     productUrl: "https://www.quince.com/women/bella-stretch-wide-leg-jeans--28?color=deep-sea-blue&size=27"
+  },
+  {
+    id: "direct_20260729_brown_textured_gold_buckle_belt",
+    name: "Brown Textured Belt with Sculptural Gold Buckle",
+    brand: "",
+    category: "belt",
+    color: "chocolate brown and gold",
+    colorFamily: "brown",
+    patterned: false,
+    texture: "structured",
+    formality: "business_casual",
+    thumb: "/product-images/confirmed/brown-textured-gold-buckle-belt.png",
+    productUrl: ""
+  },
+  {
+    id: "direct_20260729_celine_black_triomphe_belt",
+    name: "Celine Triomphe Belt",
+    brand: "Celine",
+    category: "belt",
+    color: "black and gold",
+    colorFamily: "black",
+    patterned: false,
+    texture: "structured",
+    formality: "business",
+    thumb: "/product-images/confirmed/celine-black-triomphe-belt.png",
+    productUrl: ""
   }
 ];
 
