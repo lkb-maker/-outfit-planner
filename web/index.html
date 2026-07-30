@@ -300,6 +300,11 @@ const MANNEQUIN_ITEM_LAYERS = {
   "item_1785243292489_oeif8o": "/mannequin/layers/item_1785243292489_oeif8o.png",
 };
 const MANNEQUIN_LAYER_ORDER = ["top", "bottom", "dress", "layer", "shoes", "accessory"];
+const MANNEQUIN_TOPS_OVER_BOTTOMS = new Set([
+  "item_1784051448857_opo7xg",
+  "item_1784053755444_9donii",
+  "item_1784053777436_rygh05",
+]);
 const MANNEQUIN_CORRECTED_COMBOS = {
   "item_1784049803062_36cyd2|item_1784051309093_eo70g1|item_1784063648163_w89uyx":
     "/mannequin/corrections/black-cowl-light-birch-taupe-pumps.png",
@@ -317,7 +322,9 @@ function tryOnHTML(outfit, byId) {
   const corrected = MANNEQUIN_CORRECTED_COMBOS[mannequinComboKey(outfit)];
   const pairKey = [outfit.top, outfit.bottom].filter(Boolean).sort().join("|");
   const pairCorrection = MANNEQUIN_PAIR_CORRECTIONS[pairKey];
-  const orderedIds = MANNEQUIN_LAYER_ORDER.map(cat => outfit[cat]).filter(Boolean);
+  const orderedIds = MANNEQUIN_TOPS_OVER_BOTTOMS.has(outfit.top)
+    ? [outfit.bottom, outfit.dress, outfit.top, outfit.layer, outfit.shoes, outfit.accessory].filter(Boolean)
+    : MANNEQUIN_LAYER_ORDER.map(cat => outfit[cat]).filter(Boolean);
   const available = orderedIds.filter(id => MANNEQUIN_ITEM_LAYERS[id]);
   const missing = orderedIds.filter(id => !MANNEQUIN_ITEM_LAYERS[id]).map(id => byId[id]?.name).filter(Boolean);
   const images = corrected
